@@ -1,5 +1,7 @@
 package com.itheima.chaincloud.common.config;
 
+import com.baomidou.mybatisplus.core.incrementer.DefaultIdentifierGenerator;
+import com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
@@ -21,6 +23,11 @@ public class MybatisPlusConfig {
         //防全表更新与删除插件
         mybatisPlusInterceptor.addInnerInterceptor(new BlockAttackInnerInterceptor());
         return mybatisPlusInterceptor;
+    }
+
+    @Bean
+    public IdentifierGenerator identifierGenerator() {
+        return DefaultIdentifierGenerator.getInstance();
     }
 
 }
