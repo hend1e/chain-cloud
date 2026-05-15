@@ -1,0 +1,21 @@
+application:
+  version: v1.0
+logging:
+  config: classpath:logback-spring.xml
+spring:
+  application:
+    name: chain-cloud-ms-transport
+  profiles:
+    active: local
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+cc:
+  swagger:
+    package-path: com.itheima.ms.transport.controller
+    title: 智链云途 - 线路规划微服务接口文档
+    description: 该微服务完成路线规划相关业务。
+    contact-name: 传智教育·研究院
+    contact-url: http://www.itcast.cn/
+    contact-email: yjy@itcast.cn
+    version: ${application.version}

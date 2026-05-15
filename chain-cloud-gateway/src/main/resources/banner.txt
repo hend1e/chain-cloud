@@ -1,0 +1,8 @@
+
+        _             _                     _                    _      ${spring.application.name} ${application.version}
+       | |           (_)                   | |                  | |     Port: ${server.port}
+   ___ | |__    __ _  _  _ __  ______  ___ | |  ___   _   _   __| |     Pid: ${pid}  Profile(s): ${AnsiColor.GREEN}${spring.profiles.active}${AnsiColor.DEFAULT}
+  / __|| '_ \  / _` || || '_ \|______|/ __|| | / _ \ | | | | / _` |
+ | (__ | | | || (_| || || | | |      | (__ | || (_) || |_| || (_| |
+  \___||_| |_| \__,_||_||_| |_|       \___||_| \___/  \__,_| \__,_|     https://itheima.com/
+

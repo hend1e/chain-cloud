@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.ms.work.mapper.TaskPickupDispatchMapper">
+
+    <select id="findCountByCourierIds" resultType="com.itheima.chaincloud.domain.work.domain.CourierTaskCountDTO">
+        SELECT courier_id AS courierId, count(*) AS count
+        FROM cc_pickup_dispatch_task
+        WHERE courier_id IN
+        <foreach collection="courierIds" item="courierId" open="(" close=")" separator=",">
+            #{courierId}
+        </foreach>
+        AND task_type = #{type}
+        AND (
+            (status = 1 AND estimated_end_time BETWEEN #{startDateTime} AND #{endDateTime})
+            OR
+            (status = 2 AND actual_end_time BETWEEN #{startDateTime} AND #{endDateTime})
+            OR
+            (status = 3 AND cancel_time BETWEEN #{startDateTime} AND #{endDateTime})
+        )
+        GROUP BY courier_id
+    </select>
+
+</mapper>

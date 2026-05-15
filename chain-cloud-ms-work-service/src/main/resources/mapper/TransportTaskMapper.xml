@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.ms.work.mapper.TransportTaskMapper">
+
+    <select id="findStatusCount" resultType="com.itheima.chaincloud.domain.work.domain.response.TransportTaskStatusCountDTO">
+        SELECT `status` AS statusCode, count(*) AS count
+        FROM cc_transport_task
+        GROUP BY `status`
+    </select>
+
+    <select id="monthlyDistanceStatistics" resultType="com.itheima.chaincloud.domain.work.domain.response.TransportTaskMonthlyDistanceDTO">
+        SELECT DATE(actual_arrival_time) AS dateTime, SUM(distance) AS mileage
+        FROM cc_transport_task
+        WHERE id IN
+        <foreach collection="transportTaskIds" item="taskId" open="(" close=")" separator=",">
+            #{taskId}
+        </foreach>
+        AND actual_arrival_time BETWEEN #{startTime} AND #{endTime}
+        GROUP BY DATE(actual_arrival_time)
+        ORDER BY dateTime ASC
+    </select>
+
+</mapper>
