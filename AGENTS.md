@@ -280,7 +280,7 @@ mvn clean install -DskipTests
 
 ## Skills
 
-项目技能配置存放在 `.agents/skills/` 目录下：
+项目技能配置存放在 `.claude/skills/` 目录下：
 
 | 技能名称 | 说明 |
 |---------|------|
