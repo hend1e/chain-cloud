@@ -3,10 +3,9 @@ package com.itheima.chaincloud.common.handler;
 import cn.hutool.core.exceptions.ExceptionUtil;
 import cn.hutool.core.map.MapUtil;
 import cn.hutool.core.util.ObjectUtil;
-import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
 import com.itheima.chaincloud.common.exception.CCException;
 import com.itheima.chaincloud.common.exception.CCWebException;
+import com.itheima.chaincloud.common.vo.R;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +17,7 @@ import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 import javax.validation.ValidationException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -76,15 +76,15 @@ public class GlobalExceptionHandler {
      * @return 响应数据
      */
     @ExceptionHandler(CCWebException.class)
-    public ResponseEntity<Object> handle(CCWebException exception) {
+    public R<Map<String, Object>> handle(CCWebException exception) {
         if (ObjectUtil.isNotEmpty(exception.getCause())) {
             log.error("自定义异常处理 -> ", exception);
         }
-        JSONObject jsonObject = JSONUtil.parseObj(exception);
-        return ResponseEntity.ok(MapUtil.<String, Object>builder()
-                .put("code", exception.getCode())
-                .put("msg", jsonObject.getStr("msg"))
-                .build());
+        var error = Map.<String, Object>of(
+                "code", exception.getCode(),
+                "msg", exception.getMsg()
+        );
+        return R.error(error, "服务端出现异常");
     }
 
     /**
