@@ -1,8 +1,5 @@
 package com.itheima.gateway.filter;
 
-import com.itheima.auth.factory.AuthTemplateFactory;
-import com.itheima.auth.sdk.AuthTemplate;
-import com.itheima.auth.sdk.common.AuthSdkException;
 import com.itheima.auth.sdk.dto.AuthUserInfoDTO;
 import com.itheima.auth.sdk.service.TokenCheckService;
 import com.itheima.gateway.config.MyConfig;
@@ -13,7 +10,6 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.util.List;
 
 /**
  * 司机token拦截处理
@@ -22,38 +18,18 @@ import java.util.List;
 @Slf4j
 public class DriverTokenGatewayFilterFactory extends AbstractGatewayFilterFactory<Object> implements AuthFilter {
 
-    @Resource
-    private MyConfig myConfig;
-
-    @Resource
-    private TokenCheckService tokenCheckService;
-
-    @Value("${role.driver}")
-    private String roleId;
-
     @Override
     public GatewayFilter apply(Object config) {
-        return new TokenGatewayFilter(this.myConfig, this);
+        return null;
     }
 
     @Override
     public AuthUserInfoDTO check(String token) {
-        try {
-            return this.tokenCheckService.parserToken(token);
-        } catch (AuthSdkException e) {
-            // 校验失败
-        }
         return null;
     }
 
     @Override
     public Boolean auth(String token, AuthUserInfoDTO authUserInfoDTO, String path) {
-        AuthTemplate authTemplate = AuthTemplateFactory.get(token);
-        //获取用户拥有的角色id列表
-        List<Long> roleIds = authTemplate.opsForRole().findRoleByUserId(authUserInfoDTO.getUserId()).getData();
-        log.info("id为：{}的用户拥有的角色id列表：{}，司机角色id为：{}", authUserInfoDTO.getUserId(), roleIds, roleId);
-
-        //如果用户用拥有快递员角色，则放行
-        return roleIds.contains(Long.valueOf(roleId));
+        return null;
     }
 }
