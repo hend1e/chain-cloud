@@ -10,9 +10,10 @@ import cn.hutool.core.text.CharSequenceUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.itheima.auth.sdk.common.Result;
 import com.itheima.auth.sdk.dto.*;
-import com.itheima.chaincloud.api.aigc.AIGCFeign;
-import com.itheima.chaincloud.api.auth.AuthFeign;
 import com.itheima.chaincloud.api.base.common.WorkSchedulingFeign;
+import com.itheima.chaincloud.common.util.AuthTemplateThreadLocal;
+import com.itheima.chaincloud.common.util.PageResponse;
+import com.itheima.chaincloud.common.vo.R;
 import com.itheima.chaincloud.domain.base.basic.WorkSchedulingDTO;
 import com.itheima.chaincloud.domain.base.enums.StatusEnum;
 import com.itheima.chaincloud.domain.base.enums.WorkUserTypeEnum;
@@ -20,12 +21,6 @@ import com.itheima.ms.web.manager.service.AuthService;
 import com.itheima.ms.web.manager.vo.agency.AgencySimpleVO;
 import com.itheima.ms.web.manager.vo.auth.CourierVO;
 import com.itheima.ms.web.manager.vo.auth.SysUserVO;
-import com.itheima.chaincloud.common.exception.CCWebException;
-import com.itheima.chaincloud.common.util.AuthTemplateThreadLocal;
-import com.itheima.chaincloud.common.util.HttpUtil;
-import com.itheima.chaincloud.common.util.PageResponse;
-import com.itheima.chaincloud.common.util.StrUtil;
-import com.itheima.chaincloud.common.vo.R;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,8 +50,6 @@ public class AuthServiceImpl implements AuthService {
     private String roleId;
     private final WorkSchedulingFeign workSchedulingFeign;
     private final StringRedisTemplate stringRedisTemplate;
-    private final AuthFeign authFeign;
-    private final AIGCFeign aigcFeign;
 
     // 验证码生成器
     private final CodeGenerator captchaGenerator = new MathGenerator(1);
@@ -69,57 +62,6 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public R<LoginDTO> login(LoginParamDTO login) {
-        //1. 进行风险评估
-        log.debug("【登录】开始进行风险评估，账号：{}", login.getAccount());
-        var riskResponse = this.aigcFeign.assessLoginRisk(login.getAccount(), 1);
-        log.debug("【登录】风险评估结果：风险等级={}, 需要验证码={}, 原因={}", riskResponse.getRiskLevel().getCode(), riskResponse.getNeedCaptcha(), riskResponse.getReason());
-
-        //2. 根据风险等级决定是否需要验证码
-        if(riskResponse.getNeedCaptcha() && StrUtil.isEmpty(login.getCode())){
-            return R.error("当前登录存在风险，需要验证码");
-        }
-        if (riskResponse.getNeedCaptcha()) {
-            //需要验证码，校验验证码参数
-            if (ObjectUtil.hasEmpty(login.getCode(), login.getKey())) {
-                return R.error("验证码不能为空");
-            }
-
-            //校验验证码
-            String redisKey = CAPTCHA_REDIS_PREFIX + login.getKey();
-            String redisValue = this.stringRedisTemplate.opsForValue().get(redisKey);
-            if (ObjectUtil.isEmpty(redisValue)) {
-                return R.error("验证码已过期");
-            }
-            //验证码只能使用一次，所以需要将验证码删除
-            this.stringRedisTemplate.delete(redisKey);
-            boolean verify = captchaGenerator.verify(redisValue, login.getCode());
-            if (!verify) {
-                return R.error("验证码不正确");
-            }
-            log.debug("【登录】验证码验证通过，账号：{}", login.getAccount());
-        }
-
-        //3. 校验用户名密码（如果不需要验证码，则跳过上面的验证码校验）
-        if (ObjectUtil.hasEmpty(login.getAccount(), login.getPassword())) {
-            return R.error("用户名、密码不能为空");
-        }
-
-        // 获取客户端 IP 和设备信息
-        var clientIp = HttpUtil.getClientIp();
-        var deviceInfo = HttpUtil.getDeviceInfo();
-
-        //4. 调用权限管家接口进行登录
-        log.debug("【登录】开始执行登录操作，账号：{}, IP: {}, 设备：{}", login.getAccount(), clientIp, deviceInfo);
-        var loginDTO = this.authFeign.login(login.getAccount(), login.getPassword(), 1, clientIp, deviceInfo);
-
-        if (ObjectUtil.isNotEmpty(loginDTO)) {
-            //登录成功
-            log.debug("【登录】登录成功，账号：{}", login.getAccount());
-            return R.success(loginDTO);
-        }
-
-        //登录失败
-        log.debug("【登录】登录失败，账号：{}", login.getAccount());
         return R.error("用户名或密码错误");
     }
 
