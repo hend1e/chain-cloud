@@ -27,7 +27,7 @@ spring:
             - Path=/courier/**
           filters:
             - StripPrefix=1
-            - CourierToken
+#            - CourierToken
             - AddRequestHeader=X-Request-From, chain-cloud-gateway
         - id: chain-cloud-ms-web-customer
           uri: lb://chain-cloud-ms-web-customer
@@ -35,7 +35,7 @@ spring:
             - Path=/customer/**
           filters:
             - StripPrefix=1
-            - CustomerToken
+#            - CustomerToken
             - AddRequestHeader=X-Request-From, chain-cloud-gateway
         - id: chain-cloud-ms-web-driver
           uri: lb://chain-cloud-ms-web-driver
@@ -43,7 +43,7 @@ spring:
             - Path=/driver/**
           filters:
             - StripPrefix=1
-            - DriverToken
+#            - DriverToken
             - AddRequestHeader=X-Request-From, chain-cloud-gateway
         - id: chain-cloud-ms-web-manager
           uri: lb://chain-cloud-ms-web-manager
@@ -51,7 +51,7 @@ spring:
             - Path=/manager/**
           filters:
             - StripPrefix=1
-            - ManagerToken
+#            - ManagerToken
             - AddRequestHeader=X-Request-From, chain-cloud-gateway
         - id: chain-cloud-ms-trade
           uri: lb://chain-cloud-ms-trade
