@@ -84,7 +84,7 @@ public class GlobalExceptionHandler {
                 "code", exception.getCode(),
                 "msg", exception.getMsg()
         );
-        return R.error(error, "服务端出现异常");
+        return R.error(error, exception.getMsg());
     }
 
     /**
