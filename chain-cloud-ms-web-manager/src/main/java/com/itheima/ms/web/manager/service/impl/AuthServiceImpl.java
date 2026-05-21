@@ -71,7 +71,11 @@ public class AuthServiceImpl implements AuthService {
     public R<LoginDTO> login(LoginParamDTO login) {
         //1. 进行风险评估
         log.debug("【登录】开始进行风险评估，账号：{}", login.getAccount());
-        var riskResponse = this.aigcFeign.assessLoginRisk(login.getAccount(), 1);
+        // 获取客户端 IP 和设备信息
+        var clientIp = HttpUtil.getClientIp();
+        var deviceInfo = HttpUtil.getDeviceInfo();
+
+        var riskResponse = this.aigcFeign.assessLoginRisk(login.getAccount(), 1, clientIp, deviceInfo);
         log.debug("【登录】风险评估结果：风险等级={}, 需要验证码={}, 原因={}", riskResponse.getRiskLevel().getCode(), riskResponse.getNeedCaptcha(), riskResponse.getReason());
 
         //2. 根据风险等级决定是否需要验证码
@@ -104,9 +108,7 @@ public class AuthServiceImpl implements AuthService {
             return R.error("用户名、密码不能为空");
         }
 
-        // 获取客户端 IP 和设备信息
-        var clientIp = HttpUtil.getClientIp();
-        var deviceInfo = HttpUtil.getDeviceInfo();
+
 
         //4. 调用权限管家接口进行登录
         log.debug("【登录】开始执行登录操作，账号：{}, IP: {}, 设备：{}", login.getAccount(), clientIp, deviceInfo);

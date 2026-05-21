@@ -14,12 +14,17 @@ public interface AIGCFeign {
     /**
      * 登录账号的风险评估
      *
-     * @param account  评估账号
-     * @param userType 用户类型，1-管理员 2-快递员 3-司机 4-用户
+     * @param account    评估账号
+     * @param userType   用户类型，1-管理员 2-快递员 3-司机 4-用户
+     * @param loginIp    登录 IP 地址
+     * @param deviceInfo 设备信息
      * @return 风险评估结果
      */
     @PostMapping("/risk/login")
-    RiskLoginResponse assessLoginRisk(@RequestParam("account") String account, @RequestParam("userType") Integer userType);
+    RiskLoginResponse assessLoginRisk(@RequestParam("account") String account,
+                                      @RequestParam("userType") Integer userType,
+                                      @RequestParam("loginIp") String loginIp,
+                                      @RequestParam("deviceInfo") String deviceInfo);
 
     /**
      * refreshToken 风险评估
@@ -53,17 +58,17 @@ public interface AIGCFeign {
      *
      * @param organInfo 机构信息（包含名称、ID、父级信息等），示例：
      *                  <pre>
-     *                                                    {
-     *                                                      "id": "977263044792942657",
-     *                                                      "name": "上海浦东直营网点",
-     *                                                      "knownRules": {
-     *                                                        "转运中心": "OLT",
-     *                                                        "分拣中心": "TLT",
-     *                                                        "营业部": "AGENCY"
-     *                                                      },
-     *                                                      "allowedTypes": ["OLT", "TLT", "AGENCY", "UNKNOWN"]
-     *                                                    }
-     *                                                    </pre>
+     *                                                                     {
+     *                                                                       "id": "977263044792942657",
+     *                                                                       "name": "上海浦东直营网点",
+     *                                                                       "knownRules": {
+     *                                                                         "转运中心": "OLT",
+     *                                                                         "分拣中心": "TLT",
+     *                                                                         "营业部": "AGENCY"
+     *                                                                       },
+     *                                                                       "allowedTypes": ["OLT", "TLT", "AGENCY", "UNKNOWN"]
+     *                                                                     }
+     *                                                                     </pre>
      * @return 机构类型识别结果
      */
     @PostMapping("/organ/identify-type")
@@ -74,40 +79,40 @@ public interface AIGCFeign {
      *
      * @param routeInfo 路线信息，示例：
      *                  <pre>
-     *                                                    请根据以下新建路线信息输出路线 cost 修正因子 JSON。
+     *                                                                     请根据以下新建路线信息输出路线 cost 修正因子 JSON。
      *
-     *                                                    【路线基础信息】
-     *                                                    - lineType: TRUNK_LINE
-     *                                                    - startOrganId: 1001
-     *                                                    - endOrganId: 2001
-     *                                                    - startOrganName: 广州转运中心
-     *                                                    - endOrganName: 武汉转运中心
-     *                                                    - startOrganLevel: OLT
-     *                                                    - endOrganLevel: OLT
-     *                                                    - startCoordinate: 113.2644,23.1291
-     *                                                    - endCoordinate: 114.3054,30.5931
+     *                                                                     【路线基础信息】
+     *                                                                     - lineType: TRUNK_LINE
+     *                                                                     - startOrganId: 1001
+     *                                                                     - endOrganId: 2001
+     *                                                                     - startOrganName: 广州转运中心
+     *                                                                     - endOrganName: 武汉转运中心
+     *                                                                     - startOrganLevel: OLT
+     *                                                                     - endOrganLevel: OLT
+     *                                                                     - startCoordinate: 113.2644,23.1291
+     *                                                                     - endCoordinate: 114.3054,30.5931
      *
-     *                                                    【基础成本信息】
-     *                                                    - unitCostByType: 0.80
-     *                                                    - baseCost: 4077.00
+     *                                                                     【基础成本信息】
+     *                                                                     - unitCostByType: 0.80
+     *                                                                     - baseCost: 4077.00
      *
-     *                                                    【程序已知上下文】
-     *                                                    - sameCity: false
-     *                                                    - sameProvince: false
-     *                                                    - crossProvince: true
-     *                                                    - preCalculatedDistanceKm: 1770.90
-     *                                                    - preCalculatedDurationHour: 19.20
-     *                                                    - straightLineDistanceKm: 1320.00
+     *                                                                     【程序已知上下文】
+     *                                                                     - sameCity: false
+     *                                                                     - sameProvince: false
+     *                                                                     - crossProvince: true
+     *                                                                     - preCalculatedDistanceKm: 1770.90
+     *                                                                     - preCalculatedDurationHour: 19.20
+     *                                                                     - straightLineDistanceKm: 1320.00
      *
      *
-     *                                                    要求：
-     *                                                    1. 你可以自主决定是否调用高德 MCP 工具；
-     *                                                    2. 如果已有输入足够，请减少无意义工具调用；
-     *                                                    3. 你只能输出 JSON；
-     *                                                    4. 不要输出 finalCost；
-     *                                                    5. 所有 factor 必须在合法范围内；
-     *                                                    6. 信息不足时采用保守输出。
-     *                                                    </pre>
+     *                                                                     要求：
+     *                                                                     1. 你可以自主决定是否调用高德 MCP 工具；
+     *                                                                     2. 如果已有输入足够，请减少无意义工具调用；
+     *                                                                     3. 你只能输出 JSON；
+     *                                                                     4. 不要输出 finalCost；
+     *                                                                     5. 所有 factor 必须在合法范围内；
+     *                                                                     6. 信息不足时采用保守输出。
+     *                                                                     </pre>
      * @return 路线成本因子识别结果
      */
     @PostMapping("/cost-factor/identify-factor")
@@ -118,8 +123,8 @@ public interface AIGCFeign {
      *
      * @param question 发件人地址信息，示例：
      *                 <pre>
-     *                                                 上海市浦东新区航头镇航都路18号
-     *                                                 </pre>
+     *                                                                 上海市浦东新区航头镇航都路18号
+     *                                                                 </pre>
      * @return 服务范围分析结果，包含推荐站点、候选站点、置信度等信息
      */
     @PostMapping("/service-scope/analyze")
@@ -130,12 +135,12 @@ public interface AIGCFeign {
      *
      * @param request 调度请求信息，包含快递员ID列表、位置信息等，示例：
      *                <pre>
-     *                                              {
-     *                                                "courierIds": [1, 2, 3],
-     *                                                "longitude": 116.111,
-     *                                                "latitude": 39.0
-     *                                              }
-     *                                              </pre>
+     *                                                             {
+     *                                                               "courierIds": [1, 2, 3],
+     *                                                               "longitude": 116.111,
+     *                                                               "latitude": 39.0
+     *                                                             }
+     *                                                             </pre>
      * @return 调度结果，包含选中的快递员ID和选择原因
      */
     @PostMapping("/courier-dispatch/dispatch")
