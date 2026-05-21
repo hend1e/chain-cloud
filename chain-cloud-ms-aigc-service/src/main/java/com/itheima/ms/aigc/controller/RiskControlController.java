@@ -18,15 +18,20 @@ import org.springframework.web.bind.annotation.RestController;
 public class RiskControlController {
 
     /**
-     * 登录风险评估
+     * 登录账号的风险评估
      *
-     * @param account  评估账号
-     * @param userType 用户类型，1-管理员 2-快递员 3-司机 4-用户
+     * @param account    评估账号
+     * @param userType   用户类型，1-管理员 2-快递员 3-司机 4-用户
+     * @param loginIp    登录 IP 地址
+     * @param deviceInfo 设备信息
      * @return 风险评估结果
      */
     @PostMapping("/login")
     @ApiOperation("登录风险评估")
-    public RiskLoginResponse assessLoginRisk(@RequestParam("account") String account, @RequestParam("userType") Integer userType) {
+    public RiskLoginResponse assessLoginRisk(@RequestParam("account") String account,
+                                             @RequestParam("userType") Integer userType,
+                                             @RequestParam("loginIp") String loginIp,
+                                             @RequestParam("deviceInfo") String deviceInfo){
         return null;
     }
 
