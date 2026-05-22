@@ -361,11 +361,11 @@ public class OmsServiceImpl implements OmsService {
 
         if (ObjectUtil.isEmpty(mailingSaveVO.getGoodsType())) {
             // 如果物品类型为空，基于AI技术对物品名称进行检查
-            var checkParcelItem = this.aigcFeign.checkParcelItem(mailingSaveVO.getGoodsName());
-            if (checkParcelItem.getIsProhibited()) {
-                throw new CCWebException("填写的物品属于违禁品，请重新填写");
-            }
-            mailingSaveVO.setGoodsType(Convert.toStr(checkParcelItem.getCategoryId()));
+//            var checkParcelItem = this.aigcFeign.checkParcelItem(mailingSaveVO.getGoodsName());
+//            if (checkParcelItem.getIsProhibited()) {
+//                throw new CCWebException("填写的物品属于违禁品，请重新填写");
+//            }
+//            mailingSaveVO.setGoodsType(Convert.toStr(checkParcelItem.getCategoryId()));
         }
 
         MailingSaveDTO mailingSaveDTO = BeanUtil.toBean(mailingSaveVO, MailingSaveDTO.class);

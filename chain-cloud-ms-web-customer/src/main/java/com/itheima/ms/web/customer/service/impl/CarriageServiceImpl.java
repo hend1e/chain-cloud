@@ -19,15 +19,16 @@ public class CarriageServiceImpl implements CarriageService {
 
     @Override
     public CarriageComputeResponseVO compute(String question) {
-        log.info("【运费计算服务】开始计算运费：{}", question);
-
-        var response = aigcFeign.computeCarriage(question);
-
-        var resultVO = BeanUtil.toBean(response, CarriageComputeResponseVO.class);
-
-        log.info("【运费计算服务】计算完成，计费重量：{}kg, 总运费：{}元",
-                resultVO.getComputeWeight(), resultVO.getExpense());
-
-        return resultVO;
+//        log.info("【运费计算服务】开始计算运费：{}", question);
+//
+//        var response = aigcFeign.computeCarriage(question);
+//
+//        var resultVO = BeanUtil.toBean(response, CarriageComputeResponseVO.class);
+//
+//        log.info("【运费计算服务】计算完成，计费重量：{}kg, 总运费：{}元",
+//                resultVO.getComputeWeight(), resultVO.getExpense());
+//
+//        return resultVO;
+        return null;
     }
 }
