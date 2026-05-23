@@ -5,17 +5,17 @@ import cn.hutool.core.map.MapUtil;
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.json.JSONUtil;
 import com.itheima.chaincloud.api.aigc.AIGCFeign;
-import com.itheima.chaincloud.domain.aigc.enums.RiskLevel;
-import com.itheima.ms.web.customer.properties.JwtProperties;
-import com.itheima.ms.web.customer.service.MemberService;
-import com.itheima.ms.web.customer.service.TokenService;
-import com.itheima.ms.web.customer.vo.user.UserLoginVO;
 import com.itheima.chaincloud.common.constant.Constants;
 import com.itheima.chaincloud.common.exception.CCWebException;
 import com.itheima.chaincloud.common.util.HttpUtil;
 import com.itheima.chaincloud.common.util.JwtUtils;
 import com.itheima.chaincloud.common.util.ObjectUtil;
 import com.itheima.chaincloud.common.util.StrUtil;
+import com.itheima.chaincloud.domain.aigc.enums.RiskLevel;
+import com.itheima.ms.web.customer.properties.JwtProperties;
+import com.itheima.ms.web.customer.service.MemberService;
+import com.itheima.ms.web.customer.service.TokenService;
+import com.itheima.ms.web.customer.vo.user.UserLoginVO;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -32,9 +32,9 @@ public class TokenServiceImpl implements TokenService {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
     @Resource
-    private AIGCFeign aigcFeign;
-    @Resource
     private MemberService memberService;
+    @Resource
+    private AIGCFeign aigcFeign;
 
     public String createAccessToken(Map<String, Object> claims) {
         //生成短令牌的有效期时间单位为：分钟
@@ -81,8 +81,8 @@ public class TokenServiceImpl implements TokenService {
         // 从claims中获取用户id
         var userId = MapUtil.getLong(originClaims, Constants.GATEWAY.USER_ID);
 
-        // 评估刷新token的风险
-        if (checkRefreshTokenRisk(userId)) {
+        // ★ 评估刷新token的风险
+        if (this.checkRefreshTokenRisk(userId)) {
             throw new CCWebException("此次刷新token操作处于高风险等级，请重新登录");
         }
 
@@ -107,20 +107,27 @@ public class TokenServiceImpl implements TokenService {
         var loginInfo = this.memberService.getLoginInfo(userId);
 
         // 补充当前刷新ip和设备信息
-        loginInfo.setRefreshIP(HttpUtil.getClientIp());
-        loginInfo.setRefreshDeviceInfo(HttpUtil.getDeviceInfo());
+        var clientIp = HttpUtil.getClientIp();
+        var deviceInfo = HttpUtil.getDeviceInfo();
 
-        if (StrUtil.notEquals(loginInfo.getLoginIP(), loginInfo.getRefreshIP())
-                && StrUtil.notEquals(loginInfo.getLoginDeviceInfo(), loginInfo.getRefreshDeviceInfo())) {
+        // 第一步：快速检查 - IP 和设备是否都没有变化
+        if (StrUtil.equals(clientIp, loginInfo.getRefreshIP())
+                && StrUtil.equals(deviceInfo, loginInfo.getRefreshDeviceInfo())) {
+            // ip和设备信息都与登录时一致，属于安全情况
+            return false;
+        }
+
+        // 第二步：快速检查 - IP 和设备是否同时变化
+        if (StrUtil.notEquals(clientIp, loginInfo.getRefreshIP())
+                && StrUtil.notEquals(deviceInfo, loginInfo.getRefreshDeviceInfo())) {
             // 刷新ip和登录ip不一致 并且 刷新设备信息和登录设备信息不一致，属于高风险情况
             return true;
         }
 
-        // 调用AI服务进行评估
+        // 第三步：调用AI服务进行精确评估（仅IP或仅设备变化的情况）
         var riskRefreshTokenResponse = this.aigcFeign.assessRefreshTokenRisk(JSONUtil.toJsonStr(loginInfo));
         // 高风险，拒绝生成新的token
         return riskRefreshTokenResponse.getRiskLevel() == RiskLevel.HIGH;
     }
-
 
 }
