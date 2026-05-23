@@ -114,9 +114,13 @@ public class MemberServiceImpl implements MemberService {
         var hashOps = this.stringRedisTemplate.boundHashOps(redisKey);
 
         // 构造登录信息
+        var loginIP = HttpUtil.getClientIp();
+        var loginDeviceInfo = HttpUtil.getDeviceInfo();
         var loginInfo = LoginInfo.builder()
-                .loginIP(HttpUtil.getClientIp())
-                .loginDeviceInfo(HttpUtil.getDeviceInfo())
+                .loginIP(loginIP)
+                .loginDeviceInfo(loginDeviceInfo)
+                .refreshIP(loginIP)
+                .refreshDeviceInfo(loginDeviceInfo)
                 .loginTime(DateUtil.now())
                 .lastRefreshTime(DateUtil.now())
                 .refreshCount("0")
@@ -135,6 +139,10 @@ public class MemberServiceImpl implements MemberService {
 
     public void updateLoginInfo(Long userId) {
         var loginInfo = this.getLoginInfo(userId);
+
+        // 设置新的刷新ip和设备信息
+        loginInfo.setRefreshIP(HttpUtil.getClientIp());
+        loginInfo.setRefreshDeviceInfo(HttpUtil.getDeviceInfo());
 
         var redisKey = REDIS_LOGIN_INFO + userId;
         var hashOps = this.stringRedisTemplate.boundHashOps(redisKey);
