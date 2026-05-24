@@ -40,7 +40,12 @@ public class AddressBookController {
      */
     @ApiOperation(value = "地址簿分页查询")
     @GetMapping("page")
-    public PageResponse<AddressBookEntity> page(Integer page, Integer pageSize, Long userId, String keyword, Integer type) {
+    public PageResponse<AddressBookEntity> page(@RequestParam("page") Integer page,
+                                                @RequestParam("pageSize") Integer pageSize,
+                                                @RequestParam(value = "userId", required = false)Long userId,
+                                                @RequestParam(value = "keyword", required = false) String keyword,
+                                                @RequestParam(value = "type", required = false) Integer type) {
+
         Page<AddressBookEntity> iPage = new Page<>(page, pageSize);
         Page<AddressBookEntity> pageResult = addressBookService.lambdaQuery()
                 .eq(ObjectUtil.isNotEmpty(userId), AddressBookEntity::getUserId, userId)
