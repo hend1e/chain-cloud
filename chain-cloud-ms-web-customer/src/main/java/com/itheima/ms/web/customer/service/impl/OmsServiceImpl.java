@@ -3,32 +3,42 @@ package com.itheima.ms.web.customer.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.ListUtil;
-import cn.hutool.core.convert.Convert;
 import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.img.ImgUtil;
 import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.extra.qrcode.QrCodeUtil;
 import com.alibaba.cloud.commons.lang.StringUtils;
 import com.google.zxing.BarcodeFormat;
-import com.itheima.chaincloud.api.aigc.AIGCFeign;
 import com.itheima.chaincloud.api.base.common.AreaFeign;
-import com.itheima.chaincloud.domain.base.basic.AreaDTO;
 import com.itheima.chaincloud.api.oms.CargoFeign;
 import com.itheima.chaincloud.api.oms.GoodFeign;
 import com.itheima.chaincloud.api.oms.OrderFeign;
+import com.itheima.chaincloud.api.track.TrackFeign;
+import com.itheima.chaincloud.api.trade.JsapiPayFeign;
+import com.itheima.chaincloud.api.transportInfo.TransportInfoFeign;
+import com.itheima.chaincloud.api.user.MemberFeign;
+import com.itheima.chaincloud.api.work.PickupDispatchTaskFeign;
+import com.itheima.chaincloud.api.work.TransportOrderFeign;
+import com.itheima.chaincloud.common.exception.CCWebException;
+import com.itheima.chaincloud.common.util.PageResponse;
+import com.itheima.chaincloud.common.util.UserThreadLocal;
+import com.itheima.chaincloud.domain.base.basic.AreaDTO;
 import com.itheima.chaincloud.domain.oms.domain.*;
 import com.itheima.chaincloud.domain.oms.enums.MailTypeEnum;
 import com.itheima.chaincloud.domain.oms.enums.OrderPaymentStatusEnum;
 import com.itheima.chaincloud.domain.oms.enums.OrderStatusEnum;
-import com.itheima.chaincloud.api.track.TrackFeign;
 import com.itheima.chaincloud.domain.track.domain.TrackDTO;
 import com.itheima.chaincloud.domain.track.enums.TrackStatusEnum;
-import com.itheima.chaincloud.api.trade.JsapiPayFeign;
 import com.itheima.chaincloud.domain.trade.domain.request.JsapiPayDTO;
 import com.itheima.chaincloud.domain.trade.domain.response.JsapiPayResponseDTO;
 import com.itheima.chaincloud.domain.trade.enums.PayChannelEnum;
-import com.itheima.chaincloud.api.user.MemberFeign;
+import com.itheima.chaincloud.domain.transportInfo.domain.TransportInfoDTO;
 import com.itheima.chaincloud.domain.user.domain.MemberDTO;
+import com.itheima.chaincloud.domain.work.domain.PickupDispatchTaskDTO;
+import com.itheima.chaincloud.domain.work.domain.TransportOrderDTO;
+import com.itheima.chaincloud.domain.work.enums.PickupDispatchTaskCancelReasonEnum;
+import com.itheima.chaincloud.domain.work.enums.PickupDispatchTaskStatusEnum;
+import com.itheima.chaincloud.domain.work.enums.PickupDispatchTaskTypeEnum;
 import com.itheima.ms.web.customer.service.BaseService;
 import com.itheima.ms.web.customer.service.MemberService;
 import com.itheima.ms.web.customer.service.OmsService;
@@ -37,18 +47,6 @@ import com.itheima.ms.web.customer.vo.oms.*;
 import com.itheima.ms.web.customer.vo.oms.pay.TradeLaunchVO;
 import com.itheima.ms.web.customer.vo.oms.pay.TradeResponseVO;
 import com.itheima.ms.web.customer.vo.user.MemberVO;
-import com.itheima.chaincloud.api.work.PickupDispatchTaskFeign;
-import com.itheima.chaincloud.api.work.TransportOrderFeign;
-import com.itheima.chaincloud.domain.work.domain.PickupDispatchTaskDTO;
-import com.itheima.chaincloud.domain.work.domain.TransportOrderDTO;
-import com.itheima.chaincloud.domain.work.enums.PickupDispatchTaskCancelReasonEnum;
-import com.itheima.chaincloud.domain.work.enums.PickupDispatchTaskStatusEnum;
-import com.itheima.chaincloud.domain.work.enums.PickupDispatchTaskTypeEnum;
-import com.itheima.chaincloud.common.exception.CCWebException;
-import com.itheima.chaincloud.common.util.PageResponse;
-import com.itheima.chaincloud.common.util.UserThreadLocal;
-import com.itheima.chaincloud.api.transportInfo.TransportInfoFeign;
-import com.itheima.chaincloud.domain.transportInfo.domain.TransportInfoDTO;
 import io.seata.spring.annotation.GlobalTransactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -105,8 +103,6 @@ public class OmsServiceImpl implements OmsService {
 
     @Resource
     private TrackFeign trackFeign;
-    @Resource
-    private AIGCFeign aigcFeign;
 
     /**
      * 根据ID查询
@@ -337,19 +333,6 @@ public class OmsServiceImpl implements OmsService {
      * @param mailingSaveVO 下单信息
      * @return 下单结果
      */
-    // @Override
-    // public OrderVO mailingSave(MailingSaveVO mailingSaveVO) {
-    //     //获取userid
-    //     Long userId = UserThreadLocal.getUserId();
-    //     // 寄件人收件人 地址 电话 名称 有一个不同则可以寄件
-    //     if (ObjectUtil.equal(mailingSaveVO.getSendAddress(), mailingSaveVO.getReceiptAddress())) {
-    //         throw new CCWebException("您的寄件人收件人地址相同，请重新填写");
-    //     }
-    //     MailingSaveDTO mailingSaveDTO = BeanUtil.toBean(mailingSaveVO, MailingSaveDTO.class);
-    //     mailingSaveDTO.setMemberId(userId);
-    //     OrderDTO orderDTO = orderFeign.mailingSave(mailingSaveDTO);
-    //     return parseOrderDTO2Vo(orderDTO);
-    // }
     @Override
     public OrderVO mailingSave(MailingSaveVO mailingSaveVO) {
         //获取userid
@@ -357,15 +340,6 @@ public class OmsServiceImpl implements OmsService {
         // 寄件人收件人 地址 电话 名称 有一个不同则可以寄件
         if (ObjectUtil.equal(mailingSaveVO.getSendAddress(), mailingSaveVO.getReceiptAddress())) {
             throw new CCWebException("您的寄件人收件人地址相同，请重新填写");
-        }
-
-        if (ObjectUtil.isEmpty(mailingSaveVO.getGoodsType())) {
-            // 如果物品类型为空，基于AI技术对物品名称进行检查
-//            var checkParcelItem = this.aigcFeign.checkParcelItem(mailingSaveVO.getGoodsName());
-//            if (checkParcelItem.getIsProhibited()) {
-//                throw new CCWebException("填写的物品属于违禁品，请重新填写");
-//            }
-//            mailingSaveVO.setGoodsType(Convert.toStr(checkParcelItem.getCategoryId()));
         }
 
         MailingSaveDTO mailingSaveDTO = BeanUtil.toBean(mailingSaveVO, MailingSaveDTO.class);
