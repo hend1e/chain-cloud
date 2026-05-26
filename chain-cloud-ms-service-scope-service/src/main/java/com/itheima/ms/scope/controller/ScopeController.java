@@ -176,8 +176,9 @@ public class ScopeController {
     public ResponseEntity<ServiceScopeResponse> recommendAgency(@NotNull(message = "address不能为空") @RequestParam("address") String address) {
 
         // 调用AIGC服务分析服务范围，获取智能推荐结果
-        ServiceScopeResponse response = this.aigcFeign.analyzeServiceScope(address);
-        return ResponseEntity.ok(response);
+//        ServiceScopeResponse response = this.aigcFeign.analyzeServiceScope(address);
+//        return ResponseEntity.ok(response);
+        return null;
     }
 
 }

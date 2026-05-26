@@ -133,13 +133,13 @@ public class TransportLineServiceImpl implements TransportLineService {
         var baseCost = distanceKm * costConfig;
 
         CostFactorResponse costFactor = null;
-        try {
-            String routeInfo = this.buildRouteInfo(startOrgan, endOrgan, transportLine, distanceKm, baseCost, costConfig);
-            costFactor = this.aigcFeign.identifyCostFactor(routeInfo);
-            transportLine.setExtra(JSONUtil.toJsonStr(costFactor));
-        } catch (Exception e) {
-            System.err.println("AIGC cost factor identification failed: " + e.getMessage());
-        }
+//        try {
+//            String routeInfo = this.buildRouteInfo(startOrgan, endOrgan, transportLine, distanceKm, baseCost, costConfig);
+//            costFactor = this.aigcFeign.identifyCostFactor(routeInfo);
+//            transportLine.setExtra(JSONUtil.toJsonStr(costFactor));
+//        } catch (Exception e) {
+//            System.err.println("AIGC cost factor identification failed: " + e.getMessage());
+//        }
 
         var finalCost = this.calculateFinalCost(baseCost, costFactor);
         transportLine.setCost(NumberUtil.round(finalCost, 2).doubleValue());

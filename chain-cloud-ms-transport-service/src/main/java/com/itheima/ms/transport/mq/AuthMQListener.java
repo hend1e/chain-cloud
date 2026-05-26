@@ -190,26 +190,26 @@ public class AuthMQListener {
     }
 
     private OrganTypeEnum resolveOrganTypeByAI(AuthOrgContent content) {
-        try {
-            var organTypeResponse = aigcFeign.identifyOrganType(content.getName());
-            if (organTypeResponse == null) {
-                log.warn("AI服务返回空结果，bid={}, name={}", content.getId(), content.getName());
-                return null;
-            }
-            var confidenceThreshold = 0.8;
-            if (organTypeResponse.getConfidence() < confidenceThreshold) {
-                log.warn("AI识别置信度低于阈值，置信度：{}，bid={}, name={}, organTypeResponse={}", organTypeResponse.getConfidence(), content.getId(), content.getName(), organTypeResponse);
-                return null;
-            }
-            var organType = organTypeResponse.getOrganType();
-            if (StrUtil.equalsIgnoreCase("UNKNOWN", organType)) {
-                log.warn("AI返回未知机构类型：{}", organTypeResponse);
-                return null;
-            }
-            return OrganTypeEnum.valueOf(organType);
-        } catch (Exception e) {
-            log.error("调用AI机构类型识别服务失败，bid={}, name={}", content.getId(), content.getName(), e);
-        }
+//        try {
+//            var organTypeResponse = aigcFeign.identifyOrganType(content.getName());
+//            if (organTypeResponse == null) {
+//                log.warn("AI服务返回空结果，bid={}, name={}", content.getId(), content.getName());
+//                return null;
+//            }
+//            var confidenceThreshold = 0.8;
+//            if (organTypeResponse.getConfidence() < confidenceThreshold) {
+//                log.warn("AI识别置信度低于阈值，置信度：{}，bid={}, name={}, organTypeResponse={}", organTypeResponse.getConfidence(), content.getId(), content.getName(), organTypeResponse);
+//                return null;
+//            }
+//            var organType = organTypeResponse.getOrganType();
+//            if (StrUtil.equalsIgnoreCase("UNKNOWN", organType)) {
+//                log.warn("AI返回未知机构类型：{}", organTypeResponse);
+//                return null;
+//            }
+//            return OrganTypeEnum.valueOf(organType);
+//        } catch (Exception e) {
+//            log.error("调用AI机构类型识别服务失败，bid={}, name={}", content.getId(), content.getName(), e);
+//        }
         return null;
     }
 
