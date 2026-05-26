@@ -10,6 +10,7 @@ import com.itheima.chaincloud.common.enums.BaseEnum;
  */
 public enum SendChannelEnum implements BaseEnum {
 
+    // 示例
     ALI_YUN(1, "阿里云短信平台，详情：https://www.aliyun.com/product/sms");
 
     @EnumValue
