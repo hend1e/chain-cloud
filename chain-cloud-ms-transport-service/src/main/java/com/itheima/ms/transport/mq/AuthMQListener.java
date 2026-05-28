@@ -59,11 +59,6 @@ public class AuthMQListener {
             return;
         }
 
-        if (authOrgMessage == null) {
-            log.warn("权限系统消息反序列化结果为空，msg={}", msg);
-            return;
-        }
-
         if (StrUtil.notEquals(authOrgMessage.getType(), TYPE_ORG)) {
             log.debug("非机构消息，type={}", authOrgMessage.getType());
             return;
@@ -92,11 +87,8 @@ public class AuthMQListener {
 
         var organType = this.resolveOrganType(content);
         if (organType == null) {
-            organType = this.resolveOrganTypeByAI(content);
-            if (organType == null) {
-                log.warn("无法识别机构类型，bid={}, name={}", content.getId(), content.getName());
-                return;
-            }
+            log.warn("无法识别机构类型，bid={}, name={}", content.getId(), content.getName());
+            return;
         }
 
         var entity = this.buildEntity(content, organType);
@@ -106,9 +98,8 @@ public class AuthMQListener {
         }
         var service = OrganServiceFactory.getBean(organType.getCode());
 
-        log.info("开始处理机构消息，operation={}, organType={}, bid={}, name={}", operation, organType.getCode(), content.getId(), content.getName());
+        // 执行操作
         this.execute(operation, service, entity);
-        log.info("机构消息处理完成，operation={}, organType={}, bid={}, name={}", operation, organType.getCode(), content.getId(), content.getName());
     }
 
     private boolean checkContent(AuthOrgContent content, String operation) {
@@ -145,6 +136,32 @@ public class AuthMQListener {
         }
         if (StrUtil.endWith(name, "营业部")) {
             return OrganTypeEnum.AGENCY;
+        }
+
+        // AI兜底识别
+        return this.resolveOrganTypeByAI(content);
+    }
+
+    private OrganTypeEnum resolveOrganTypeByAI(AuthOrgContent content) {
+        try {
+            var organTypeResponse = aigcFeign.identifyOrganType(content.getName());
+            if (organTypeResponse == null) {
+                log.warn("AI服务返回空结果，bid={}, name={}", content.getId(), content.getName());
+                return null;
+            }
+            var confidenceThreshold = 0.8;
+            if (organTypeResponse.getConfidence() < confidenceThreshold) {
+                log.warn("AI识别置信度低于阈值，置信度：{}，bid={}, name={}, organTypeResponse={}", organTypeResponse.getConfidence(), content.getId(), content.getName(), organTypeResponse);
+                return null;
+            }
+            var organType = organTypeResponse.getOrganType();
+            if (StrUtil.equalsIgnoreCase("UNKNOWN", organType)) {
+                log.warn("AI返回未知机构类型：{}", organTypeResponse);
+                return null;
+            }
+            return OrganTypeEnum.valueOf(organType);
+        } catch (Exception e) {
+            log.error("调用AI机构类型识别服务失败，bid={}, name={}", content.getId(), content.getName(), e);
         }
         return null;
     }
@@ -187,30 +204,6 @@ public class AuthMQListener {
             default:
                 log.warn("未支持的操作类型，operation={}, bid={}", operation, entity.getBid());
         }
-    }
-
-    private OrganTypeEnum resolveOrganTypeByAI(AuthOrgContent content) {
-        try {
-            var organTypeResponse = aigcFeign.identifyOrganType(content.getName());
-            if (organTypeResponse == null) {
-                log.warn("AI服务返回空结果，bid={}, name={}", content.getId(), content.getName());
-                return null;
-            }
-            var confidenceThreshold = 0.8;
-            if (organTypeResponse.getConfidence() < confidenceThreshold) {
-                log.warn("AI识别置信度低于阈值，置信度：{}，bid={}, name={}, organTypeResponse={}", organTypeResponse.getConfidence(), content.getId(), content.getName(), organTypeResponse);
-                return null;
-            }
-            var organType = organTypeResponse.getOrganType();
-            if (StrUtil.equalsIgnoreCase("UNKNOWN", organType)) {
-                log.warn("AI返回未知机构类型：{}", organTypeResponse);
-                return null;
-            }
-            return OrganTypeEnum.valueOf(organType);
-        } catch (Exception e) {
-            log.error("调用AI机构类型识别服务失败，bid={}, name={}", content.getId(), content.getName(), e);
-        }
-        return null;
     }
 
 }
