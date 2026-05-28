@@ -21,6 +21,7 @@ import java.util.List;
 @Validated
 @RestController
 public class CostConfigurationController {
+
     @Resource
     private CostConfigurationService costConfigurationService;
 
