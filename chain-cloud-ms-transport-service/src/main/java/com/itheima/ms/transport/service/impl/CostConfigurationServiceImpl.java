@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 @Service
 public class CostConfigurationServiceImpl implements CostConfigurationService {
 
-    private static final String SL_TRANSPORT_COST_REDIS_KEY = "SL_TRANSPORT_COST_CONFIGURATION";
+    private static final String CC_TRANSPORT_COST_REDIS_KEY = "CC_TRANSPORT_COST_CONFIGURATION";
 
     private static final Map<Object, Object> DEFAULT_COST = Map.of(
             TransportLineEnum.TRUNK_LINE.getCode(), 0.6,
@@ -33,7 +33,7 @@ public class CostConfigurationServiceImpl implements CostConfigurationService {
 
     @Override
     public List<CostConfigurationDTO> findConfiguration() {
-        Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(SL_TRANSPORT_COST_REDIS_KEY);
+        Map<Object, Object> entries = stringRedisTemplate.opsForHash().entries(CC_TRANSPORT_COST_REDIS_KEY);
         if (ObjectUtil.isEmpty(entries)) {
             entries = DEFAULT_COST;
         }
@@ -45,7 +45,7 @@ public class CostConfigurationServiceImpl implements CostConfigurationService {
     @Override
     public void saveConfiguration(List<CostConfigurationDTO> dto) {
         Map<Object, Object> map = dto.stream().collect(Collectors.toMap(v -> v.getTransportLineType().toString(), v -> v.getCost().toString()));
-        stringRedisTemplate.opsForHash().putAll(SL_TRANSPORT_COST_REDIS_KEY, map);
+        stringRedisTemplate.opsForHash().putAll(CC_TRANSPORT_COST_REDIS_KEY, map);
     }
 
     @Override
@@ -53,7 +53,7 @@ public class CostConfigurationServiceImpl implements CostConfigurationService {
         if (ObjectUtil.isEmpty(type)) {
             throw new CCException(ExceptionEnum.TRANSPORT_LINE_TYPE_ERROR);
         }
-        Object o = stringRedisTemplate.opsForHash().get(SL_TRANSPORT_COST_REDIS_KEY, type.toString());
+        Object o = stringRedisTemplate.opsForHash().get(CC_TRANSPORT_COST_REDIS_KEY, type.toString());
         if (ObjectUtil.isNotEmpty(o)) {
             return Convert.toDouble(o);
         }
