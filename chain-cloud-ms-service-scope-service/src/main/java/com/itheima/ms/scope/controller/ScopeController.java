@@ -1,6 +1,5 @@
 package com.itheima.ms.scope.controller;
 
-import com.itheima.chaincloud.api.aigc.AIGCFeign;
 import com.itheima.chaincloud.domain.aigc.domain.ServiceScopeResponse;
 import com.itheima.chaincloud.domain.scope.domain.ServiceScopeDTO;
 import com.itheima.ms.scope.entity.ServiceScopeEntity;
@@ -11,13 +10,13 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
 import io.swagger.annotations.ApiOperation;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import javax.annotation.Resource;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
@@ -25,16 +24,13 @@ import java.util.List;
  * 服务范围
  */
 @Api(tags = "服务范围")
-@RestController
-@RequestMapping("scopes")
 @Validated
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("scopes")
 public class ScopeController {
 
-    @Resource
-    private ScopeService scopeService;
-
-    @Resource
-    private AIGCFeign aigcFeign;
+    private final ScopeService scopeService;
 
     /**
      * 新增或更新服务服务范围
@@ -175,9 +171,7 @@ public class ScopeController {
     })
     public ResponseEntity<ServiceScopeResponse> recommendAgency(@NotNull(message = "address不能为空") @RequestParam("address") String address) {
 
-        // 调用AIGC服务分析服务范围，获取智能推荐结果
-//        ServiceScopeResponse response = this.aigcFeign.analyzeServiceScope(address);
-//        return ResponseEntity.ok(response);
+        // TODO 待实现
         return null;
     }
 
