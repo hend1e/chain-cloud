@@ -12,22 +12,19 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-/**
- * 运单表 服务实现类
- */
 @Service
 public class TransportOrderTaskServiceImpl extends
         ServiceImpl<TransportOrderTaskMapper, TransportOrderTaskEntity> implements TransportOrderTaskService {
 
     @Override
     public void batchSaveTransportOrder(List<TransportOrderTaskEntity> transportOrderTaskList) {
-        saveBatch(transportOrderTaskList);
+        super.saveBatch(transportOrderTaskList);
     }
 
     @Override
     public IPage<TransportOrderTaskEntity> findByPage(Integer page, Integer pageSize, String transportOrderId, Long transportTaskId) {
-        Page<TransportOrderTaskEntity> iPage = new Page(page, pageSize);
-        LambdaQueryWrapper<TransportOrderTaskEntity> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        var iPage = new Page<TransportOrderTaskEntity>(page, pageSize);
+        var lambdaQueryWrapper = new LambdaQueryWrapper<TransportOrderTaskEntity>();
         lambdaQueryWrapper.like(ObjectUtil.isNotEmpty(transportOrderId), TransportOrderTaskEntity::getTransportOrderId, transportOrderId);
         lambdaQueryWrapper.like(ObjectUtil.isNotEmpty(transportTaskId), TransportOrderTaskEntity::getTransportTaskId, transportTaskId);
         return super.page(iPage, lambdaQueryWrapper);
@@ -35,16 +32,16 @@ public class TransportOrderTaskServiceImpl extends
 
     @Override
     public List<TransportOrderTaskEntity> findAll(String transportOrderId, Long transportTaskId) {
-        LambdaQueryWrapper<TransportOrderTaskEntity> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        var lambdaQueryWrapper = new LambdaQueryWrapper<TransportOrderTaskEntity>();
         lambdaQueryWrapper.like(ObjectUtil.isNotEmpty(transportOrderId), TransportOrderTaskEntity::getTransportOrderId, transportOrderId);
         lambdaQueryWrapper.like(ObjectUtil.isNotEmpty(transportTaskId), TransportOrderTaskEntity::getTransportTaskId, transportTaskId);
         lambdaQueryWrapper.orderBy(true, false, TransportOrderTaskEntity::getCreated);
-        return list(lambdaQueryWrapper);
+        return super.list(lambdaQueryWrapper);
     }
 
     @Override
     public Long count(String transportOrderId, Long transportTaskId) {
-        LambdaQueryWrapper<TransportOrderTaskEntity> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        var lambdaQueryWrapper = new LambdaQueryWrapper<TransportOrderTaskEntity>();
         lambdaQueryWrapper.like(ObjectUtil.isNotEmpty(transportOrderId), TransportOrderTaskEntity::getTransportOrderId, transportOrderId);
         lambdaQueryWrapper.like(ObjectUtil.isNotEmpty(transportTaskId), TransportOrderTaskEntity::getTransportTaskId, transportTaskId);
         return super.count(lambdaQueryWrapper);
@@ -52,8 +49,10 @@ public class TransportOrderTaskServiceImpl extends
 
     @Override
     public void del(String transportOrderId, Long transportTaskId) {
-        if (ObjectUtil.isAllEmpty(transportOrderId, transportTaskId)) return;
-        LambdaQueryWrapper<TransportOrderTaskEntity> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        if (ObjectUtil.isAllEmpty(transportOrderId, transportTaskId)) {
+            return;
+        }
+        var lambdaQueryWrapper = new LambdaQueryWrapper<TransportOrderTaskEntity>();
         lambdaQueryWrapper.eq(ObjectUtil.isNotEmpty(transportOrderId), TransportOrderTaskEntity::getTransportOrderId, transportOrderId);
         lambdaQueryWrapper.eq(ObjectUtil.isNotEmpty(transportTaskId), TransportOrderTaskEntity::getTransportTaskId, transportTaskId);
         super.remove(lambdaQueryWrapper);
