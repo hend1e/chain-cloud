@@ -20,13 +20,11 @@ import com.itheima.chaincloud.api.oms.OrderFeign;
 import com.itheima.chaincloud.api.transport.OrganFeign;
 import com.itheima.chaincloud.api.transport.TransportLineFeign;
 import com.itheima.chaincloud.common.constant.Constants;
-import com.itheima.chaincloud.common.enums.IdEnum;
 import com.itheima.chaincloud.common.exception.CCException;
 import com.itheima.chaincloud.common.service.IdService;
 import com.itheima.chaincloud.common.util.PageResponse;
 import com.itheima.chaincloud.common.vo.OrderMsg;
 import com.itheima.chaincloud.common.vo.TransportInfoMsg;
-import com.itheima.chaincloud.common.vo.TransportOrderMsg;
 import com.itheima.chaincloud.common.vo.TransportOrderStatusMsg;
 import com.itheima.chaincloud.domain.transport.domain.OrganDTO;
 import com.itheima.chaincloud.domain.transport.domain.TransportLineNodeDTO;
@@ -70,98 +68,8 @@ public class TransportOrderServiceImpl extends ServiceImpl<TransportOrderMapper,
     @Override
     @Transactional
     public TransportOrderEntity orderToTransportOrder(Long orderId) {
-        //幂等性校验
-        var transportOrderEntity = this.findByOrderId(orderId);
-        if (ObjectUtil.isNotEmpty(transportOrderEntity)) {
-            return transportOrderEntity;
-        }
-
-        //查询订单
-        var detailByOrder = this.orderFeign.findDetailByOrderId(orderId);
-        if (ObjectUtil.isEmpty(detailByOrder)) {
-            throw new CCException(WorkExceptionEnum.ORDER_NOT_FOUND);
-        }
-
-        //校验货物的重量和体积数据
-        var cargoDto = detailByOrder.getOrderDTO().getOrderCargoDto();
-        if (ObjectUtil.isEmpty(cargoDto)) {
-            throw new CCException(WorkExceptionEnum.ORDER_CARGO_NOT_FOUND);
-        }
-
-        //校验位置信息
-        var orderLocationDTO = detailByOrder.getOrderLocationDTO();
-        if (ObjectUtil.isEmpty(orderLocationDTO)) {
-            throw new CCException(WorkExceptionEnum.ORDER_LOCATION_NOT_FOUND);
-        }
-
-        var sendAgentId = Convert.toLong(orderLocationDTO.getSendAgentId());//起始网点id
-        var receiveAgentId = Convert.toLong(orderLocationDTO.getReceiveAgentId());//终点网点id
-
-        //默认参与调度
-        var isDispatch = true;
-        TransportLineNodeDTO transportLineNodeDTO = null;
-        if (ObjectUtil.equal(sendAgentId, receiveAgentId)) {
-            //起点、终点是同一个网点，不需要规划路线，直接发消息生成派件任务即可
-            isDispatch = false;
-        } else {
-            //根据起始机构规划运输路线
-            transportLineNodeDTO = this.transportLineFeign.queryPathByDispatchMethod(sendAgentId, receiveAgentId);
-            if (ObjectUtil.isEmpty(transportLineNodeDTO) || CollUtil.isEmpty(transportLineNodeDTO.getNodeList())) {
-                throw new CCException(WorkExceptionEnum.TRANSPORT_LINE_NOT_FOUND);
-            }
-        }
-
-        //创建新的运单对象
-        var transportOrder = new TransportOrderEntity();
-
-        transportOrder.setId(this.idService.getId(IdEnum.TRANSPORT_ORDER)); //设置id
-        transportOrder.setOrderId(orderId);//订单ID
-        transportOrder.setStartAgencyId(sendAgentId);//起始网点id
-        transportOrder.setEndAgencyId(receiveAgentId);//终点网点id
-        transportOrder.setCurrentAgencyId(sendAgentId);//当前所在机构id
-
-        if (ObjectUtil.isNotEmpty(transportLineNodeDTO)) {
-            transportOrder.setStatus(TransportOrderStatusEnum.CREATED);
-            transportOrder.setSchedulingStatus(TransportOrderSchedulingStatusEnum.TO_BE_SCHEDULED);
-            transportOrder.setNextAgencyId(transportLineNodeDTO.getNodeList().get(1).getId());//下一个机构id
-            transportOrder.setTransportLine(JSONUtil.toJsonStr(transportLineNodeDTO));//完整的运输路线
-        } else {
-            //下个网点就是当前网点
-            transportOrder.setNextAgencyId(sendAgentId);
-            transportOrder.setStatus(TransportOrderStatusEnum.ARRIVED_END);
-            transportOrder.setSchedulingStatus(TransportOrderSchedulingStatusEnum.SCHEDULED);
-        }
-
-        transportOrder.setTotalVolume(cargoDto.getVolume());//货品总体积，单位m^3
-        transportOrder.setTotalWeight(cargoDto.getWeight());//货品总重量，单位kg
-        transportOrder.setIsRejection(false); //默认非拒收订单
-
-        var result = super.save(transportOrder);
-        if (result) {
-            if (isDispatch) {
-                //发送消息到调度中心，进行调度
-                this.sendTransportOrderMsgToDispatch(transportOrder);
-            } else {
-                //不需要调度 发送消息更新订单状态
-                this.sendUpdateStatusMsg(ListUtil.toList(transportOrder.getId()), TransportOrderStatusEnum.ARRIVED_END);
-                //不需要调度，发送消息生成派件任务
-                this.sendDispatchTaskMsgToDispatch(transportOrder);
-            }
-
-            //发消息通知其他系统，运单已经生成
-            var msg = TransportOrderMsg.builder()
-                    .id(transportOrder.getId())
-                    .orderId(transportOrder.getOrderId())
-                    .created(DateUtil.current())
-                    .build()
-                    .toJson();
-            this.mqFeign.sendMsg(Constants.MQ.Exchanges.TRANSPORT_ORDER_DELAYED,
-                    Constants.MQ.RoutingKeys.TRANSPORT_ORDER_CREATE, msg, Constants.MQ.NORMAL_DELAY);
-
-            return transportOrder;
-        }
-        //保存失败
-        throw new CCException(WorkExceptionEnum.TRANSPORT_ORDER_SAVE_ERROR);
+        // TODO 待实现
+        return null;
     }
 
     /**
