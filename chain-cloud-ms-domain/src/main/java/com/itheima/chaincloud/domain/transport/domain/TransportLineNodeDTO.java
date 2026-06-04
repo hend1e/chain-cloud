@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -20,8 +21,8 @@ import java.util.List;
 public class TransportLineNodeDTO {
 
     @ApiModelProperty(value = "节点列表", required = true)
-    private List<OrganDTO> nodeList;
+    private List<OrganDTO> nodeList = new ArrayList<>(0);
 
     @ApiModelProperty(value = "路线成本")
-    private Double cost;
+    private Double cost = 0d;
 }
