@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
- * 调度运输任务（优化版）
+ * 调度运输任务
  * <p>
  * 核心能力：
  * 1. 使用 Redis ZSet 实现"优先级调度"
