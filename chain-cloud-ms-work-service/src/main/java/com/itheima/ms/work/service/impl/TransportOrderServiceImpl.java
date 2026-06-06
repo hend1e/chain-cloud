@@ -307,84 +307,8 @@ public class TransportOrderServiceImpl extends ServiceImpl<TransportOrderMapper,
 
     @Override
     public boolean updateByTaskId(Long taskId) {
-        //通过运输任务查询运单id列表
-        var transportOrderIdList = this.transportTaskService.queryTransportOrderIdListById(taskId);
-        if (CollUtil.isEmpty(transportOrderIdList)) {
-            return false;
-        }
-
-        //查询运单列表
-        var transportOrderList = super.listByIds(transportOrderIdList);
-
-        //查询运单中下个机构的信息
-        var nextAgencyIds = transportOrderList.stream()
-                .map(TransportOrderEntity::getNextAgencyId)
-                .distinct()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        var organDTOS = this.organFeign.queryByIds(nextAgencyIds);
-        var organMap = organDTOS.stream()
-                .collect(Collectors.toMap(OrganDTO::getId, dto -> dto));
-
-        for (var transportOrder : transportOrderList) {
-            //获取将发往的目的地机构
-            var organDTO = organMap.get(transportOrder.getNextAgencyId());
-
-            //构建消息实体类
-            var info = StrUtil.format("快件到达【{}】", organDTO.getName());
-            var transportInfoMsg = TransportInfoMsg.builder()
-                    .transportOrderId(transportOrder.getId())//运单id
-                    .status("运送中")//消息状态
-                    .info(info)//消息详情
-                    .created(DateUtil.current())//创建时间
-                    .build()
-                    .toJson();
-            //发送运单跟踪消息
-            this.mqFeign.sendMsg(Constants.MQ.Exchanges.TRANSPORT_INFO,
-                    Constants.MQ.RoutingKeys.TRANSPORT_INFO_APPEND, transportInfoMsg);
-
-            //设置当前所在机构id为下一个机构id
-            transportOrder.setCurrentAgencyId(transportOrder.getNextAgencyId());
-
-            //解析完整的运输链路，找到下一个机构id
-            var transportLine = transportOrder.getTransportLine();
-            var transportLineNodeDTO = JSONUtil.toBean(transportLine, TransportLineNodeDTO.class);
-            var nextAgencyId = 0L;
-            var nodeList = transportLineNodeDTO.getNodeList();
-            //这里反向循环主要是考虑到拒收的情况，路线中会存在相同的节点，始终可以查找到后面的节点
-            //正常：A B C D E ，拒收：A B C D E D C B A
-            for (var i = nodeList.size() - 1; i >= 0; i--) {
-                var node = nodeList.get(i);
-                var agencyId = node.getId();
-                if (ObjectUtil.equal(agencyId, transportOrder.getCurrentAgencyId())) {
-                    if (i == nodeList.size() - 1) {
-                        //已经是最后一个节点了，也就是到最后一个机构了
-                        nextAgencyId = agencyId;
-                        transportOrder.setStatus(TransportOrderStatusEnum.ARRIVED_END);
-                        //发送消息更新状态
-                        this.sendUpdateStatusMsg(ListUtil.toList(transportOrder.getId()), TransportOrderStatusEnum.ARRIVED_END);
-                    } else {
-                        //后面还有节点
-                        nextAgencyId = nodeList.get(i + 1).getId();
-                        //设置运单状态为待调度
-                        transportOrder.setSchedulingStatus(TransportOrderSchedulingStatusEnum.TO_BE_SCHEDULED);
-                    }
-                    break;
-                }
-            }
-            //设置下一个节点id
-            transportOrder.setNextAgencyId(nextAgencyId);
-
-            //如果运单没有到达终点，需要发送消息到运单调度的交换机中
-            //如果已经到达最终网点，需要发送消息，进行分配快递员作业
-            if (ObjectUtil.notEqual(transportOrder.getStatus(), TransportOrderStatusEnum.ARRIVED_END)) {
-                this.sendTransportOrderMsgToDispatch(transportOrder);
-            } else {
-                this.sendDispatchTaskMsgToDispatch(transportOrder);
-            }
-        }
-        //批量更新运单
-        return super.updateBatchById(transportOrderList);
+        // TODO 待实现
+        return false;
     }
 
     @Override
