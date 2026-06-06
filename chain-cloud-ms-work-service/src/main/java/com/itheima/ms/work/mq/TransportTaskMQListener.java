@@ -1,12 +1,6 @@
 package com.itheima.ms.work.mq;
 
-import com.itheima.chaincloud.api.base.truck.TruckPlanFeign;
-import com.itheima.chaincloud.api.driver.DriverJobFeign;
-import com.itheima.chaincloud.api.transport.TransportLineFeign;
 import com.itheima.chaincloud.common.constant.Constants;
-import com.itheima.ms.work.service.TransportOrderService;
-import com.itheima.ms.work.service.TransportOrderTaskService;
-import com.itheima.ms.work.service.TransportTaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.ExchangeTypes;
