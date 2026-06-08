@@ -156,21 +156,6 @@ public class TransportTaskServiceImpl extends
         //实际到达时间
         transportTaskEntity.setActualArrivalTime(LocalDateTime.now());
 
-        try {
-            var transportTask = super.getById(transportTaskCompleteDTO.getTransportTaskId());
-            var mark = transportTask.getMark();
-            if (StrUtil.isNotEmpty(mark)) {
-                var jsonObj = JSONUtil.parseObj(mark);
-                var dispatchDecisionId = jsonObj.getStr("dispatchDecisionId");
-                if (StrUtil.isNotEmpty(dispatchDecisionId)) {
-                    var isDelayed = LocalDateTime.now().isAfter(transportTask.getPlanArrivalTime());
-                    var msg = JSONUtil.toJsonStr(Map.of("dispatchDecisionId", dispatchDecisionId, "isDelayed", isDelayed, "manualAdjusted", false, "date", System.currentTimeMillis()));
-                    this.mqFeign.sendMsg(Constants.MQ.Exchanges.AIGC, Constants.MQ.RoutingKeys.COMPLETE, msg);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("发送消息失败", e);
-        }
         super.updateById(transportTaskEntity);
     }
 
