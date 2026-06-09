@@ -2,7 +2,7 @@
 
 ## 技术栈
 
-- **Java 11** + **Spring Boot 2.7.12** + **Spring Cloud 2021.0.3** + **Spring Cloud Alibaba 2021.0.4.0**
+- **Java 17** + **Spring Boot 2.7.12** + **Spring Cloud 2021.0.3** + **Spring Cloud Alibaba 2021.0.4.0**
 - **Maven** 多模块聚合工程
 - 关键依赖：MyBatis-Plus 3.5.2、Redisson 3.17.1、Nacos 配置、Seata 1.5.2 分布式事务、XXL-Job 2.3.0 定时任务、Hutool 5.8.44、Knife4j 3.0.3、MySQL 8.0.28、Caffeine 3.1.1、Aliyun OSS 3.10.2、Itcast Auth 1.0.8
 
@@ -214,30 +214,30 @@ chain-cloud/ (根聚合pom)
 
 ## 依赖版本（根 pom properties）
 
-| 依赖 | 版本 |
-|------|------|
-| Java | 11 |
-| Spring Boot | 2.7.12 |
-| Spring Cloud | 2021.0.3 |
+| 依赖 | 版本         |
+|------|------------|
+| Java | 17         |
+| Spring Boot | 2.7.12     |
+| Spring Cloud | 2021.0.3   |
 | Spring Cloud Alibaba | 2021.0.4.0 |
-| MyBatis-Plus | 3.5.2 |
-| MySQL | 8.0.28 |
-| Redisson | 3.17.1 |
-| Seata | 1.5.2 |
-| XXL-Job | 2.3.0 |
-| Hutool | 5.8.0.M3 |
-| Knife4j | 3.0.3 |
-| Caffeine | 3.1.1 |
-| Aliyun OSS | 3.10.2 |
-| JJWT | 0.9.1 |
-| Itcast Auth | 1.0.8 |
-| Lombok | 1.18.22 |
-| AspectJ | 1.9.7 |
-| HikariCP | 4.0.3 |
-| OkHttp | 3.13.1 |
-| Nacos Config | 0.2.10 |
-| EagleMap | 1.0 |
-| CGLIB | 3.3.0 |
+| MyBatis-Plus | 3.5.2      |
+| MySQL | 8.0.28     |
+| Redisson | 3.17.1     |
+| Seata | 1.5.2      |
+| XXL-Job | 2.3.0      |
+| Hutool | 5.8.0.M3   |
+| Knife4j | 3.0.3      |
+| Caffeine | 3.1.1      |
+| Aliyun OSS | 3.10.2     |
+| JJWT | 0.9.1      |
+| Itcast Auth | 1.0.8      |
+| Lombok | 1.18.22    |
+| AspectJ | 1.9.7      |
+| HikariCP | 4.0.3      |
+| OkHttp | 3.13.1     |
+| Nacos Config | 0.2.10     |
+| EagleMap | 1.0        |
+| CGLIB | 3.3.0      |
 
 ## 常用命令
 
