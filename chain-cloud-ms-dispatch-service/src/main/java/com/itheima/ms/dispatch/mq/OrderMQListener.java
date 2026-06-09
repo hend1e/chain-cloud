@@ -3,9 +3,7 @@ package com.itheima.ms.dispatch.mq;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.convert.Convert;
-import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.date.LocalDateTimeUtil;
-import cn.hutool.core.stream.StreamUtil;
 import cn.hutool.json.JSONUtil;
 import com.itheima.chaincloud.api.aigc.AIGCFeign;
 import com.itheima.chaincloud.api.base.common.MQFeign;
@@ -19,8 +17,6 @@ import com.itheima.chaincloud.common.vo.CourierTaskMsg;
 import com.itheima.chaincloud.common.vo.OrderMsg;
 import com.itheima.chaincloud.domain.aigc.domain.CourierDispatchRequest;
 import com.itheima.chaincloud.domain.transport.domain.DispatchConfigurationDTO;
-import com.itheima.chaincloud.domain.work.domain.CourierTaskCountDTO;
-import com.itheima.chaincloud.domain.work.enums.PickupDispatchTaskTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.ExchangeTypes;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -33,7 +29,6 @@ import javax.annotation.Resource;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * 订单业务消息，接收到新订单后，根据快递员的负载情况，分配快递员
@@ -46,8 +41,6 @@ public class OrderMQListener {
     private CourierFeign courierFeign;
     @Resource
     private DispatchConfigurationFeign dispatchConfigurationFeign;
-    @Resource
-    private PickupDispatchTaskFeign pickupDispatchTaskFeign;
     @Resource
     private MQFeign mqFeign;
     @Resource
@@ -85,7 +78,6 @@ public class OrderMQListener {
         Long selectedCourierId = null;
         if (CollUtil.isNotEmpty(courierIds)) {
             //选择快递员
-//            selectedCourierId = this.selectCourier(courierIds, orderMsg.getTaskType());
             selectedCourierId = this.selectCourierByAI(courierIds, orderMsg.getTaskType(), longitude, latitude);
         }
 
@@ -114,77 +106,23 @@ public class OrderMQListener {
 
     }
 
-    private List<Long> queryCourierIdListByCondition(Long agencyId, Double longitude, Double latitude, long toEpochMilli) {
-        // TODO 暂时先模拟实现，后面再做具体实现
-        return ListUtil.of(1L);
-    }
-
     private Long selectCourierByAI(List<Long> courierIds, Integer taskType, Double longitude, Double latitude) {
         if (courierIds.size() == 1) {
             return courierIds.get(0);
         }
-        var request = CourierDispatchRequest.builder()
-                .courierIds(courierIds)
-                .latitude(longitude)
-                .longitude(latitude)
-                .build();
+        try {
+            var request = CourierDispatchRequest.builder()
+                    .courierIds(courierIds)
+                    .latitude(longitude)
+                    .longitude(latitude)
+                    .build();
 
-        var response = aigcFeign.courierDispatch(request);
-        return Convert.toLong(response.getCourierId());
-    }
-
-
-    /**
-     * 根据当日的任务数选取快递员
-     *
-     * @param courierIds 快递员列个表
-     * @param taskType   任务类型
-     * @return 选中的快递员id
-     */
-    private Long selectCourier(List<Long> courierIds, Integer taskType) {
-        if (courierIds.size() == 1) {
-            return courierIds.get(0);
+            var response = aigcFeign.courierDispatch(request);
+            return Convert.toLong(response.getCourierId());
+        } catch (Exception e) {
+            log.error("调用AIGC服务失败", e);
         }
-        String date = DateUtil.date().toDateStr();
-         List<CourierTaskCountDTO> courierTaskCountDTOS = this.pickupDispatchTaskFeign.findCountByCourierIds(courierIds,
-                 PickupDispatchTaskTypeEnum.codeOf(taskType), date);
-//        List<CourierTaskCountDTO> courierTaskCountDTOS = this.findCountByCourierIds(courierIds, PickupDispatchTaskTypeEnum.codeOf(taskType), date);
-        if (CollUtil.isEmpty(courierTaskCountDTOS)) {
-            //没有查到任务数量，默认给第一个快递员分配任务
-            return courierIds.get(0);
-        }
-
-        //查看任务数是否与快递员数相同，如果不相同需要补齐，设置任务数为0，这样就可以确保每个快递员都能分配到任务
-        if (ObjectUtil.notEqual(courierIds.size(), courierTaskCountDTOS.size())) {
-            List<CourierTaskCountDTO> dtoList = StreamUtil.of(courierIds)
-                    .filter(courierId -> {
-                        int index = CollUtil.indexOf(courierTaskCountDTOS, dto -> ObjectUtil.equals(dto.getCourierId(), courierId));
-                        return index == -1;
-                    })
-                    .map(courierId -> CourierTaskCountDTO.builder()
-                            .courierId(courierId)
-                            .count(0L).build())
-                    .collect(Collectors.toList());
-            //补齐到集合中
-            courierTaskCountDTOS.addAll(dtoList);
-        }
-
-        //按照任务数量从小到大排序
-        CollUtil.sortByProperty(courierTaskCountDTOS, "count");
-        //选中任务数最小的快递员进行分配
-        return courierTaskCountDTOS.get(0).getCourierId();
-    }
-
-    private List<CourierTaskCountDTO> findCountByCourierIds(List<Long> courierIds, PickupDispatchTaskTypeEnum codeOf,
-                                                            String date) {
-
-        //TODO 模拟实现
-        var courierTaskCountDTO = CourierTaskCountDTO.builder()
-                .courierId(courierIds.get(0))
-                .count(10L)
-                .build();
-
-        return List.of(courierTaskCountDTO);
+        return courierIds.get(0);
     }
 
 }

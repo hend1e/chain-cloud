@@ -11,7 +11,10 @@ import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.itheima.chaincloud.api.base.common.AreaFeign;
+import com.itheima.chaincloud.api.base.common.AuthFeign;
 import com.itheima.chaincloud.api.base.common.MQFeign;
+import com.itheima.chaincloud.api.base.common.MessageFeign;
 import com.itheima.chaincloud.api.oms.OrderFeign;
 import com.itheima.chaincloud.api.search.CourierTaskFeign;
 import com.itheima.chaincloud.common.constant.Constants;
@@ -19,7 +22,14 @@ import com.itheima.chaincloud.common.exception.CCException;
 import com.itheima.chaincloud.common.util.BeanUtil;
 import com.itheima.chaincloud.common.util.ObjectUtil;
 import com.itheima.chaincloud.common.util.PageResponse;
+import com.itheima.chaincloud.common.util.StrUtil;
 import com.itheima.chaincloud.common.vo.OrderMsg;
+import com.itheima.chaincloud.common.vo.TransportInfoMsg;
+import com.itheima.chaincloud.domain.base.basic.MessageAddDTO;
+import com.itheima.chaincloud.domain.base.constants.MessageConstants;
+import com.itheima.chaincloud.domain.base.enums.MessageBussinessTypeEnum;
+import com.itheima.chaincloud.domain.base.enums.MessageContentTypeEnum;
+import com.itheima.chaincloud.domain.oms.domain.OrderDTO;
 import com.itheima.chaincloud.domain.work.domain.*;
 import com.itheima.chaincloud.domain.work.domain.request.PickupDispatchTaskPageQueryDTO;
 import com.itheima.chaincloud.domain.work.domain.response.PickupDispatchTaskStatisticsDTO;
@@ -31,6 +41,7 @@ import com.itheima.ms.work.mapper.TaskPickupDispatchMapper;
 import com.itheima.ms.work.service.PickupDispatchTaskService;
 import com.itheima.ms.work.service.TransportOrderService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +51,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PickupDispatchTaskServiceImpl extends ServiceImpl<TaskPickupDispatchMapper, PickupDispatchTaskEntity> implements PickupDispatchTaskService {
 
@@ -48,6 +60,9 @@ public class PickupDispatchTaskServiceImpl extends ServiceImpl<TaskPickupDispatc
     private final CourierTaskFeign courierTaskFeign;
     private final MQFeign mqFeign;
     private final TransportOrderService transportOrderService;
+    private final AreaFeign areaFeign;
+    private final AuthFeign authFeign;
+    private final MessageFeign messageFeign;
 
     // 更新取派件任务状态
     @Override
@@ -149,9 +164,149 @@ public class PickupDispatchTaskServiceImpl extends ServiceImpl<TaskPickupDispatc
         taskPickupDispatch.setStatus(PickupDispatchTaskStatusEnum.NEW);
         var result = super.save(taskPickupDispatch);
         if (result) {
+            //同步快递员任务到es
+            this.syncCourierTask2Es(taskPickupDispatch);
+
+            //生成运单跟踪消息和快递员端取件/派件消息通知
+            this.generateMsg(taskPickupDispatch);
+
             return taskPickupDispatch;
         }
         throw new CCException(WorkExceptionEnum.PICKUP_DISPATCH_TASK_SAVE_ERROR);
+    }
+
+    /**
+     * 生成运单跟踪消息和快递员端取件/派件消息通知
+     *
+     * @param taskPickupDispatch 取派件任务
+     */
+    private void generateMsg(PickupDispatchTaskEntity taskPickupDispatch) {
+        var orderDTO = orderFeign.findById(taskPickupDispatch.getOrderId());
+        //分配给快递员的取派件任务需要发送消息
+        if (ObjectUtil.isNotEmpty(taskPickupDispatch.getCourierId())) {
+            String title;
+            String content;
+            Integer contentType;
+            String address;
+            if (ObjectUtil.equal(taskPickupDispatch.getTaskType(), PickupDispatchTaskTypeEnum.DISPATCH)) {
+                //派件任务需要发送运单跟踪消息
+                this.sendTransportInfoMsg(taskPickupDispatch);
+
+                //派件任务需要生成派件相关通知消息
+                //组装消息内容
+                address = areaFeign.get(orderDTO.getReceiverProvinceId()).getName()
+                        + areaFeign.get(orderDTO.getReceiverCityId()).getName()
+                        + areaFeign.get(orderDTO.getReceiverCountyId()).getName()
+                        + orderDTO.getSenderAddress();
+                content = StrUtil.format("地址：{}，收件人：{}，电话：{}", address, orderDTO.getReceiverName(), orderDTO.getReceiverPhone());
+
+                title = MessageConstants.MessageTitle.DISPATCH;
+                contentType = MessageContentTypeEnum.COURIER_DISPATCH.getCode();
+            } else {
+                //取件任务需要生成取件相关通知消息
+                //组装消息内容
+                address = areaFeign.get(orderDTO.getSenderProvinceId()).getName()
+                        + areaFeign.get(orderDTO.getSenderCityId()).getName()
+                        + areaFeign.get(orderDTO.getSenderCountyId()).getName()
+                        + orderDTO.getSenderAddress();
+                content = StrUtil.format("地址：{}，寄件人：{}，电话：{}", address, orderDTO.getSenderName(), orderDTO.getSenderPhone());
+
+                title = MessageConstants.MessageTitle.PICKUP;
+                contentType = MessageContentTypeEnum.COURIER_PICKUP.getCode();
+            }
+            var messageAddDTO = MessageAddDTO.builder()
+                    .title(title)
+                    .content(content)
+                    .bussinessType(MessageBussinessTypeEnum.COURIER.getCode())
+                    .userId(taskPickupDispatch.getCourierId())
+                    .contentType(contentType)
+                    .relevantId(taskPickupDispatch.getId())
+                    .build();
+            messageFeign.add(messageAddDTO);
+        }
+    }
+
+    /**
+     * 发送派件相关运单跟踪消息
+     *
+     * @param taskPickupDispatch 取派件任务
+     */
+    private void sendTransportInfoMsg(PickupDispatchTaskEntity taskPickupDispatch) {
+        var userDTO = authFeign.getByUserId(taskPickupDispatch.getCourierId());
+        var transportOrderEntity = transportOrderService.findByOrderId(taskPickupDispatch.getOrderId());
+        var info = StrUtil.format("您的快递正在派送途中，派件人【{}，电话 {}】", userDTO.getName(), userDTO.getMobile());
+
+        //构建消息实体类
+        var transportInfoMsg = TransportInfoMsg.builder()
+                .transportOrderId(transportOrderEntity.getId())
+                .status("派送中")
+                .info(info)
+                .created(DateUtil.current())
+                .build().toJson();
+        this.mqFeign.sendMsg(Constants.MQ.Exchanges.TRANSPORT_INFO, Constants.MQ.RoutingKeys.TRANSPORT_INFO_APPEND, transportInfoMsg);
+    }
+
+    /**
+     * 同步快递员任务到es
+     *
+     * @param taskPickupDispatch 取派件任务
+     */
+    private void syncCourierTask2Es(PickupDispatchTaskEntity taskPickupDispatch) {
+        //构建快递员任务
+        var courierTaskDTO = this.getCourierTask(taskPickupDispatch);
+        //为快递员任务set运单号
+        try {
+            var transportOrderEntity = transportOrderService.findByOrderId(taskPickupDispatch.getOrderId());
+            courierTaskDTO.setTransportOrderId(transportOrderEntity.getId());
+        } catch (Exception e) {
+            log.info("id为{}的取派件任务没有运单！", taskPickupDispatch.getId());
+        }
+        //发送消息，快递员任务存入es
+        mqFeign.sendMsg(Constants.MQ.Exchanges.COURIER_TASK, Constants.MQ.RoutingKeys.COURIER_TASK_SAVE_OR_UPDATE, JSONUtil.toJsonStr(courierTaskDTO));
+    }
+
+    /**
+     * 构建快递员任务
+     *
+     * @return 快递员任务
+     */
+    private CourierTaskDTO getCourierTask(PickupDispatchTaskEntity taskPickupDispatch) {
+        //查询订单
+        var orderDTO = orderFeign.findById(taskPickupDispatch.getOrderId());
+
+        //取派件任务字段复制到快递员任务
+        var courierTaskDTO = BeanUtil.toBean(taskPickupDispatch, CourierTaskDTO.class);
+        courierTaskDTO.setTaskType(taskPickupDispatch.getTaskType().getCode());
+        courierTaskDTO.setStatus(taskPickupDispatch.getStatus().getCode());
+        courierTaskDTO.setIsDeleted(PickupDispatchTaskIsDeletedEnum.NOT_DELETED.getCode());
+
+        //设置快递员任务的姓名、电话、地址字段
+        setNameAndPhoneAndAddress(orderDTO, courierTaskDTO);
+        return courierTaskDTO;
+    }
+
+    /**
+     * 设置快递员任务的姓名、电话、地址字段
+     *
+     * @param orderDTO       订单
+     * @param courierTaskDTO 快递员任务
+     */
+    private void setNameAndPhoneAndAddress(OrderDTO orderDTO, CourierTaskDTO courierTaskDTO) {
+        String name;
+        String phone;
+        String address;
+        if (courierTaskDTO.getTaskType().equals(PickupDispatchTaskTypeEnum.PICKUP.getCode())) {
+            name = orderDTO.getSenderName();
+            phone = orderDTO.getSenderPhone();
+            address = orderDTO.getSenderAddress();
+        } else {
+            name = orderDTO.getReceiverName();
+            phone = orderDTO.getReceiverPhone();
+            address = orderDTO.getReceiverAddress();
+        }
+        courierTaskDTO.setAddress(address);
+        courierTaskDTO.setName(name);
+        courierTaskDTO.setPhone(phone);
     }
 
     @Override

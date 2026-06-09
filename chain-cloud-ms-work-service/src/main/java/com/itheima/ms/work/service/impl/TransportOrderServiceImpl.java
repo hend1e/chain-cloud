@@ -376,8 +376,7 @@ public class TransportOrderServiceImpl extends ServiceImpl<TransportOrderMapper,
                                 .build()
                                 .toJson();
                         //发送运单跟踪消息
-                        this.mqFeign.sendMsg(Constants.MQ.Exchanges.TRANSPORT_INFO,
-                                Constants.MQ.RoutingKeys.TRANSPORT_INFO_APPEND, transportInfoMsg);
+                        this.mqFeign.sendMsg(Constants.MQ.Exchanges.TRANSPORT_INFO, Constants.MQ.RoutingKeys.TRANSPORT_INFO_APPEND, transportInfoMsg);
 
                         //封装运单对象
                         var transportOrderEntity = new TransportOrderEntity();
@@ -432,8 +431,7 @@ public class TransportOrderServiceImpl extends ServiceImpl<TransportOrderMapper,
                     .build()
                     .toJson();
             //发送运单跟踪消息
-            this.mqFeign.sendMsg(Constants.MQ.Exchanges.TRANSPORT_INFO,
-                    Constants.MQ.RoutingKeys.TRANSPORT_INFO_APPEND, transportInfoMsg);
+            this.mqFeign.sendMsg(Constants.MQ.Exchanges.TRANSPORT_INFO, Constants.MQ.RoutingKeys.TRANSPORT_INFO_APPEND, transportInfoMsg);
 
             //设置当前所在机构id为下一个机构id
             transportOrder.setCurrentAgencyId(transportOrder.getNextAgencyId());

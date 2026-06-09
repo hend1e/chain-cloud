@@ -13,6 +13,7 @@ import com.itheima.auth.sdk.dto.*;
 import com.itheima.chaincloud.api.aigc.AIGCFeign;
 import com.itheima.chaincloud.api.auth.AuthFeign;
 import com.itheima.chaincloud.api.base.common.WorkSchedulingFeign;
+import com.itheima.chaincloud.common.exception.CCException;
 import com.itheima.chaincloud.domain.base.basic.WorkSchedulingDTO;
 import com.itheima.chaincloud.domain.base.enums.StatusEnum;
 import com.itheima.chaincloud.domain.base.enums.WorkUserTypeEnum;
@@ -38,6 +39,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -147,8 +149,18 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public boolean check(String key, String value) {
-        //TODO 待实现
-        return false;
+        if (StrUtil.isBlank(value)) {
+            throw new CCException("请输入验证码");
+        }
+        var code = stringRedisTemplate.opsForValue().get(key);
+        if (code == null) {
+            throw new CCException("验证码已过期");
+        }
+        if (!StrUtil.equalsIgnoreCase(value, code)) {
+            throw new CCException("验证码不正确");
+        }
+        stringRedisTemplate.expire(key, 1, TimeUnit.SECONDS);
+        return true;
     }
 
     /**

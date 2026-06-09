@@ -1,9 +1,11 @@
 package com.itheima.ms.work.mq;
 
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.date.LocalDateTimeUtil;
 import cn.hutool.core.stream.StreamUtil;
 import cn.hutool.json.JSONUtil;
+import com.itheima.chaincloud.api.base.common.MQFeign;
 import com.itheima.chaincloud.api.oms.OrderFeign;
 import com.itheima.chaincloud.common.constant.Constants;
 import com.itheima.chaincloud.common.exception.CCException;
@@ -12,6 +14,7 @@ import com.itheima.chaincloud.common.util.ObjectUtil;
 import com.itheima.chaincloud.common.util.StrUtil;
 import com.itheima.chaincloud.common.vo.CourierMsg;
 import com.itheima.chaincloud.common.vo.CourierTaskMsg;
+import com.itheima.chaincloud.common.vo.TransportInfoMsg;
 import com.itheima.chaincloud.domain.oms.enums.OrderStatusEnum;
 import com.itheima.chaincloud.domain.work.enums.*;
 import com.itheima.ms.work.entity.PickupDispatchTaskEntity;
@@ -43,6 +46,7 @@ public class CourierMQListener {
     private final PickupDispatchTaskService pickupDispatchTaskService;
     private final TransportOrderService transportOrderService;
     private final OrderFeign orderFeign;
+    private final MQFeign mqFeign;
 
     @RabbitListener(bindings = @QueueBinding(
             value = @Queue(name = Constants.MQ.Queues.WORK_PICKUP_DISPATCH_TASK_CREATE),
@@ -92,7 +96,17 @@ public class CourierMQListener {
     public void listenCourierPickupMsg(String msg) {
         log.info("接收到快递员取件成功的消息 >>> msg = {}", msg);
         CourierMsg courierMsg = JSONUtil.toBean(msg, CourierMsg.class);
-        System.out.println(courierMsg);
-        this.transportOrderService.orderToTransportOrder(courierMsg.getOrderId());
+        var transportOrder = this.transportOrderService.orderToTransportOrder(courierMsg.getOrderId());
+
+        //发送运单跟踪消息
+        String info = StrUtil.format("智链云途快递员已取件， 取件人【{}，电话 {}】", courierMsg.getCourierName(), courierMsg.getCourierMobile());
+        //构建消息实体类
+        String transportInfoMsg = TransportInfoMsg.builder()
+                .transportOrderId(transportOrder.getId())//运单id
+                .status("已取件")//消息状态
+                .info(info)//消息详情
+                .created(DateUtil.current())//创建时间
+                .build().toJson();
+        this.mqFeign.sendMsg(Constants.MQ.Exchanges.TRANSPORT_INFO, Constants.MQ.RoutingKeys.TRANSPORT_INFO_APPEND, transportInfoMsg);
     }
 }
