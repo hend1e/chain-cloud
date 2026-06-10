@@ -385,7 +385,16 @@ mvn clean install -DskipTests
 | domain-dto | 定义项目中 DTO 类编写规范，包括命名规范和注解要求 |
 | domain-enum | 定义项目中枚举类编写规范，包括命名规范、注解要求和实现模式 |
 | api-feign | 定义项目中 Feign API 接口编写规范，包括命名规范、注解要求和实现模式 |
+| entity-class | 定义项目中 Entity 实体类编写规范，包括命名规范、基类继承、注解要求和字段映射 |
+| service-layer | 定义项目中 Service 接口与实现类编写规范，包括 MyBatis-Plus IService/ServiceImpl 继承模式、查询构建、分页和异常处理 |
+| mapper-interface | 定义项目中 MyBatis-Plus Mapper 接口编写规范，包括命名规范、注解要求和基类继承 |
+| mq-listener | 定义项目中 RabbitMQ 消息监听器编写规范，包括注解绑定、消息解析、日志记录和常量引用 |
+| vo-class | 定义项目中 VO（View Object）类编写规范，用于 Web 模块的前端数据交互 |
+| service-controller | 定义项目中业务微服务 Controller 编写规范，用于内部 Feign 接口的 REST 实现 |
+| web-controller | 定义项目中 Web 模块 Controller 编写规范，用于面向前端的 REST 接口实现 |
+| strategy-handler | 定义项目中策略模式编写规范，包括注解路由、Handler 接口、工厂类和具体实现 |
+| exception-design | 定义项目中异常处理规范，包括 CCException/CCWebException 使用、异常枚举定义和全局异常处理 |
 | karpathy-guidelines | 减少常见 LLM 编码错误的行为准则，用于编写、审查或重构代码时避免过度复杂化 |
 | plantuml | 定义项目中 PlantUML 图代码生成规范，包括时序图、流程图等图表的编写规范和最佳实践 |
 
-调用方式：在需要时使用 `/skill domain-dto` 或 `/skill domain-enum` 或 `/skill api-feign` 等加载技能指导
+调用方式：在需要时使用 `/skill domain-dto` 或 `/skill entity-class` 或 `/skill service-layer` 等加载技能指导
