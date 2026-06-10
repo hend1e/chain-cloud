@@ -4,169 +4,267 @@
 
 - **Java 17** + **Spring Boot 2.7.12** + **Spring Cloud 2021.0.3** + **Spring Cloud Alibaba 2021.0.4.0**
 - **Maven** 多模块聚合工程
-- 关键依赖：MyBatis-Plus 3.5.2、Redisson 3.17.1、Nacos 配置、Seata 1.5.2 分布式事务、XXL-Job 2.3.0 定时任务、Hutool 5.8.44、Knife4j 3.0.3、MySQL 8.0.28、Caffeine 3.1.1、Aliyun OSS 3.10.2、Itcast Auth 1.0.8
+- 关键依赖：MyBatis-Plus 3.5.5、Redisson 3.27.0、Nacos 配置、Seata 1.7.1 分布式事务、XXL-Job 2.4.1 定时任务、Hutool 5.8.0.M3、Knife4j 3.0.3、MySQL 8.0.33、Caffeine 3.1.8、Aliyun OSS 3.17.4、Itcast Auth 1.0.8、Netty 4.1.107.Final
 
 ## 项目结构
 
-```
-chain-cloud/ (根聚合pom)
-├── chain-cloud-common/                -- 通用模块（纯依赖库，无启动类）
-│   ├── annotation/                    -- 自定义注解（@NoAuthorization 等）
-│   ├── aspect/                        -- 切面
-│   ├── config/                        -- 通用配置（Knife4jConfiguration 等）
-│   ├── constant/                      -- 常量
-│   ├── entity/                        -- 通用实体
-│   ├── enums/                         -- 基础枚举（含 BaseEnum 接口）
-│   ├── exception/                     -- 异常（CCException 等）
-│   ├── handler/                       -- 全局异常处理器（GlobalExceptionHandler）
-│   ├── interceptor/                   -- 拦截器（UserFeignRequestInterceptor 等）
-│   ├── properties/                    -- 属性绑定
-│   ├── service/                       -- 通用服务（AliOssService, IdService, RealNameVerifyService）
-│   ├── util/                          -- 工具类（JwtUtils, DateUtils, HttpUtil, BeanUtil 等）
-│   └── vo/                            -- 值对象（R, AuthUserInfo, BaseMsg, OrderMsg 等）
-│
-├── chain-cloud-ms-domain/             -- 领域模型层（DTO、枚举、常量，不含实体和事件）
-│   ├── base/
-│   │   ├── basic/                     -- 基础 DTO（AreaDTO, GoodsTypeDTO, MessageDTO, WorkPatternDTO 等）
-│   │   ├── constants/                 -- 常量类（MessageConstants, TruckConstant）
-│   │   ├── enums/                     -- 枚举（StatusEnum, TruckPlanStatusEnum, MessageBussinessTypeEnum 等）
-│   │   ├── truck/                     -- 车辆 DTO（TruckDTO, TruckPlanDTO, TruckTripsDTO 等）
-│   │   └── user/                      -- 用户 DTO（TruckDriverDTO, TruckDriverLicenseDTO）
-│   └── transport/
-│       ├── domain/                    -- 运输 DTO（CostConfigurationDTO, OrganDTO, TransportLineDTO 等）
-│       └── enums/                     -- 运输枚举（DispatchMethodEnum）
-│
-├── chain-cloud-ms-api/                -- API 层（Feign 接口定义）
-│   ├── base/
-│   │   ├── common/                    -- 基础 Feign（AreaFeign, AuthFeign, GoodsTypeFeign, MessageFeign, MQFeign, WorkPatternFeign 等）
-│   │   ├── trips/                     -- 趟次 Feign（TripsFeign）
-│   │   ├── truck/                     -- 车辆 Feign（TruckFeign, TruckPlanFeign, TruckLicenseFeign, TruckReturnRegisterFeign 等）
-│   │   └── user/                      -- 用户 Feign（DriverFeign）
-│   └── transport/                     -- 运输 Feign（CostConfigurationFeign, OrganFeign, TransportLineFeign 等）
-│
-├── chain-cloud-gateway/               -- API 网关模块（Spring Cloud Gateway）
-│   └── src/main/java/com/itheima/
-│       └── GatewayApplication.java    -- 网关启动类
-│
-├── chain-cloud-mq/                    -- 消息队列模块（RabbitMQ 封装）
-│   ├── config/                        -- MessageConfig, ErrorMessageConfig
-│   ├── entity/                        -- FailMsgEntity
-│   ├── exception/                     -- MsgException
-│   ├── job/                           -- FailMsgJob（XXL-Job 重试）
-│   ├── mapper/                        -- FailMsgMapper
-│   └── service/                       -- MQService, FailMsgService 及实现
-│
-├── chain-cloud-ms-base-service/       -- 基础微服务（区域、货物类型、车辆、司机、排班等基础数据）
-│   └── src/main/java/com/itheima/ms/base/
-│       ├── controller/                -- 控制器（base, truck, user 分组）
-│       ├── entity/                    -- 持久化实体（Area, Truck, TruckPlan, TruckDriver 等）
-│       ├── service/                   -- 服务层接口与实现
-│       ├── mapper/                    -- MyBatis-Plus Mapper 接口
-│       ├── job/                       -- XXL-Job 定时任务（HistoryScheduleJob）
-│       ├── mq/                        -- MQ 监听器（AuthUserMQListener, TruckPlanScheduledMQListener）
-│       └── config/                    -- XxlJobConfig
-│
-├── chain-cloud-ms-auth-service/       -- 认证微服务（登录、登录记录）
-│   └── src/main/java/com/itheima/ms/auth/
-│       └── controller/                -- AuthController, LoginRecordController
-│
-├── chain-cloud-ms-user-service/       -- 用户微服务（会员、地址簿）
-│   └── src/main/java/com/itheima/ms/user/
-│       └── controller/                -- MemberController, AddressBookController
-│
-├── chain-cloud-ms-oms-service/        -- 订单管理微服务（OMS）（订单、货物、热门商品）
-│   └── src/main/java/com/itheima/ms/oms/
-│       └── controller/                -- OrderController, CargoController, HotGoodController
-│
-├── chain-cloud-ms-transport-service/  -- 运输微服务（运输线路、成本配置、调度配置、网点）
-│   └── src/main/java/com/itheima/ms/transport/
-│       └── controller/                -- TransportLineController, CostConfigurationController, DispatchConfigurationController, OrganController
-│
-├── chain-cloud-ms-transport-info-service/  -- 运输信息微服务
-│   └── src/main/java/com/itheima/ms/transportinfo/
-│       └── controller/                -- TransportInfoController
-│
-├── chain-cloud-ms-work-service/       -- 作业微服务（运输任务、运输订单、揽收调度任务）
-│   └── src/main/java/com/itheima/ms/work/
-│       └── controller/                -- TransportTaskController, TransportOrderController, PickupDispatchTaskController
-│
-├── chain-cloud-ms-trade-service/      -- 交易微服务（支付、退款、通知）
-│   └── src/main/java/com/itheima/ms/trade/
-│       └── controller/                -- TradingController, PayChannelController, NativePayController, JsapiPayController, BasicPayController, NotifyController, RefundRecordController
-│
-├── chain-cloud-ms-carriage-service/   -- 运费微服务
-│   └── src/main/java/com/itheima/ms/carriage/
-│       └── controller/                -- CarriageController
-│
-├── chain-cloud-ms-courier-service/    -- 快递员微服务
-│   └── src/main/java/com/itheima/ms/courier/
-│       └── controller/                -- CourierController
-│
-├── chain-cloud-ms-driver-service/     -- 司机微服务
-│   └── src/main/java/com/itheima/ms/driver/
-│       └── controller/                -- DriverJobController
-│
-├── chain-cloud-ms-track-service/      -- 轨迹微服务（物流轨迹）
-│   └── src/main/java/com/itheima/ms/track/
-│       └── controller/                -- TrackController
-│
-├── chain-cloud-ms-sms-service/        -- 短信微服务
-│   └── src/main/java/com/itheima/ms/sms/
-│       └── controller/                -- SmsController
-│
-├── chain-cloud-ms-search-service/     -- 搜索微服务
-│   └── src/main/java/com/itheima/ms/search/
-│       └── controller/                -- CourierTaskController
-│
-├── chain-cloud-ms-service-scope-service/  -- 服务范围微服务
-│   └── src/main/java/com/itheima/ms/scope/
-│       └── controller/                -- ScopeController
-│
-├── chain-cloud-ms-dispatch-service/   -- 调度微服务
-│
-├── chain-cloud-ms-aigc-service/       -- AIGC 智能微服务（AI 调度、风控、成本因子等）
-│   └── src/main/java/com/itheima/ms/aigc/
-│       └── controller/                -- ServiceScopeController, RiskControlController, TransportOrderDispatchController, OrganTypeAgentController, TransportTaskDispatchController, CostFactorController, ParcelItemCheckController, CourierDispatchController, ComputeCarriageAgentController
-│
-├── chain-cloud-ms-web-manager/        -- 管理端 Web 接口（后台管理系统）
-│   └── src/main/java/com/itheima/ms/web/manager/controller/
-│       ├── auth/                      -- 认证（AuthController）
-│       ├── agency/                    -- 代理管理（AgencyController）
-│       ├── base/                      -- 基础数据（Area, GoodType, WorkPattern, WorkScheduling, Workspace, FileUpload）
-│       ├── truck/                     -- 车辆管理（Truck, TruckTrips, TruckReturnRegister, TruckType, Driver）
-│       ├── carriage/                  -- 运费管理（CarriageController）
-│       ├── oms/                       -- 订单管理（Order, Cargo）
-│       ├── transport/                 -- 运输管理（TransportLine, DispatchConfiguration, CostConfiguration）
-│       └── work/                      -- 作业管理（TransportTask, TransportOrder, PickupDispatchTask）
-│
-├── chain-cloud-ms-web-customer/       -- 客户端 Web 接口（客户/货主端）
-│   └── src/main/java/com/itheima/ms/web/customer/controller/
-│       ├── AreaController             -- 区域
-│       ├── AddressBookController      -- 地址簿
-│       ├── CargoController            -- 货物
-│       ├── CarriageController         -- 运费
-│       ├── OrderController            -- 订单
-│       └── UserController             -- 用户
-│
-├── chain-cloud-ms-web-courier/        -- 快递员端 Web 接口
-│   └── src/main/java/com/itheima/ms/web/courier/controller/
-│       ├── LoginController            -- 登录
-│       ├── UserController             -- 用户
-│       ├── TaskController             -- 任务
-│       ├── TrackController            -- 轨迹
-│       ├── MessageController          -- 消息
-│       ├── AreaController             -- 区域
-│       └── PayController              -- 支付
-│
-└── chain-cloud-ms-web-driver/         -- 司机端 Web 接口
-    └── src/main/java/com/itheima/ms/web/driver/controller/
-        ├── LoginController            -- 登录
-        ├── UserController             -- 用户
-        ├── TaskController             -- 任务
-        ├── TrackController            -- 轨迹
-        ├── MessageController          -- 消息
-        └── FileUploadController       -- 文件上传
-```
+| 模块 | 说明 | 类型 |
+|------|------|------|
+| `chain-cloud-common` | 通用工具、注解、异常、配置、拦截器、VO 等 | 纯依赖库 |
+| `chain-cloud-ms-domain` | 领域模型（各业务域 DTO、枚举、常量） | 纯依赖库 |
+| `chain-cloud-ms-api` | Feign 接口定义（含 Fallback） | 纯依赖库 |
+| `chain-cloud-mq` | RabbitMQ 消息队列封装（发送监控、重试、失败持久化） | 纯依赖库 |
+| `chain-cloud-gateway` | Spring Cloud Gateway 网关（鉴权过滤器、跨域配置） | 可启动 |
+| `chain-cloud-ms-base-service` | 基础数据服务（区域、货物类型、车辆、司机、排班、消息） | 可启动 |
+| `chain-cloud-ms-auth-service` | 认证服务（登录、登录记录） | 可启动 |
+| `chain-cloud-ms-user-service` | 用户服务（会员、地址簿） | 可启动 |
+| `chain-cloud-ms-oms-service` | 订单管理服务（订单、货物、热门商品） | 可启动 |
+| `chain-cloud-ms-work-service` | 作业服务（运输任务、运输订单、揽收调度） | 可启动 |
+| `chain-cloud-ms-dispatch-service` | 调度服务（智能调度、ML 模型、定时任务） | 可启动 |
+| `chain-cloud-ms-transport-service` | 运输服务（运输线路、成本配置、调度配置、网点） | 可启动 |
+| `chain-cloud-ms-transport-info-service` | 运输信息服务（多级缓存、布隆过滤器） | 可启动 |
+| `chain-cloud-ms-trade-service` | 交易服务（微信支付、支付宝、退款、通知） | 可启动 |
+| `chain-cloud-ms-carriage-service` | 运费服务 | 可启动 |
+| `chain-cloud-ms-courier-service` | 快递员服务 | 可启动 |
+| `chain-cloud-ms-driver-service` | 司机服务 | 可启动 |
+| `chain-cloud-ms-track-service` | 轨迹服务（物流轨迹） | 可启动 |
+| `chain-cloud-ms-sms-service` | 短信服务（阿里云短信、多渠道路由） | 可启动 |
+| `chain-cloud-ms-search-service` | 搜索服务（ElasticSearch） | 可启动 |
+| `chain-cloud-ms-service-scope-service` | 服务范围服务 | 可启动 |
+| `chain-cloud-ms-aigc-service` | AIGC 智能服务（AI 调度、风控、成本因子、物品审核） | 可启动 |
+| `chain-cloud-ms-web-manager` | 管理端后台接口（后台管理系统） | 可启动 |
+| `chain-cloud-ms-web-customer` | 客户/货主端接口 | 可启动 |
+| `chain-cloud-ms-web-courier` | 快递员端接口 | 可启动 |
+| `chain-cloud-ms-web-driver` | 司机端接口 | 可启动 |
+
+## 模块详情
+
+### chain-cloud-common
+
+基础包：`com.itheima.chaincloud.common`
+
+| 包 | 内容 |
+|----|------|
+| annotation/ | `@NoAuthorization` 自定义注解 |
+| aspect/ | `ValidatedAspect` 参数校验切面 |
+| config/ | `Knife4jConfiguration`、`MybatisPlusConfig`、`WebConfig`、`CommonFeignErrorDecoder`、`FeignErrorDecoder` |
+| constant/ | `Constants` |
+| entity/ | `BaseEntity` 基础实体 |
+| enums/ | `BaseEnum`、`IdEnum`、`BaseExceptionEnum` |
+| exception/ | `CCException`、`CCWebException` |
+| handler/ | `GlobalExceptionHandler`、`ConvertHandler`、`MyMetaObjectHandler` |
+| interceptor/ | `UserFeignRequestInterceptor`、`UserInterceptor`、`TokenInterceptor` |
+| properties/ | `SwaggerConfigProperties`、`RealNameVerifyProperties`、`AliOSSProperties` |
+| service/ | `AliOssService`、`IdService`、`RealNameVerifyService` |
+| util/ | `JwtUtils`、`DateUtils`、`HttpUtil`、`BeanUtil`、`UserThreadLocal`、`AuthTemplateThreadLocal`、`PageResponse`、`CoordinateUtil`、`ObjectUtil`、`LocationUtils`、`StrUtil`、`ResponseEntityUtils`、`AspectUtil` |
+| vo/ | `R`、`AuthUserInfo`、`BaseMsg`、`OrderMsg`、`TradeStatusMsg`、`CourierMsg`、`CourierTaskMsg`、`TransportOrderStatusMsg`、`TransportInfoMsg`、`TransportOrderMsg` |
+
+### chain-cloud-ms-domain
+
+基础包：`com.itheima.chaincloud.domain`，按业务域组织：
+
+| 子包 | 主要内容 |
+|------|---------|
+| base/basic/ | `AreaDTO`、`GoodsTypeDTO`、`MessageDTO`、`WorkPatternDTO`、`WorkSchedulingDTO`、`MessageQueryDTO`、`MessageAddDTO` 等 |
+| base/enums/ | `StatusEnum`、`TruckPlanStatusEnum`、`MessageBussinessTypeEnum`、`WorkUserTypeEnum`、`WorkStatusEnum`、`WorkPatternEnum`、`TruckRunStatusEnum`、`TruckWorkStatusEnum`、`TruckPlanScheduleStatusEnum`、`TruckTripsPeriodEnum`、`TruckAccidentTypeEnum`、`MessageContentTypeEnum`、`TruckFaultTypeEnum`、`TruckBreakRulesTypeEnum` |
+| base/truck/ | `TruckDTO`、`TruckPlanDTO`、`TruckTripsDTO`、`TruckTypeDTO`、`TruckLicenseDTO`、`TruckReturnRegisterDTO`、`TransportTripsTruckDriverDTO` 等 |
+| base/user/ | `TruckDriverDTO`、`TruckDriverLicenseDTO` |
+| transport/domain/ | `CostConfigurationDTO`、`OrganDTO`、`TransportLineDTO`、`TransportLineNodeDTO`、`TransportLineSearchDTO`、`DispatchConfigurationDTO` |
+| transport/enums/ | `DispatchMethodEnum` |
+| aigc/domain/ | `TransportTaskDispatchResponse`、`TransportOrderDispatchResponse`、`ServiceScopeResponse`、`RiskLoginResponse`、`ParcelItemCheckResponse`、`ComputeCarriageResponse` 等 |
+| aigc/enums/ | `RiskLevel` |
+| auth/domain/ | `LoginRecordDTO` |
+| carriage/domain/ | `WaybillDTO`、`CarriageDTO` |
+| carriage/enums/ | `EconomicRegionEnum` |
+| carriage/constant/ | `CarriageConstant` |
+| courier/domain/ | `TaskPickupDispatchDTO`、`CourierScopeDTO`、`CourierStatusDTO` |
+| driver/domain/ | `DriverJobDTO`、`DriverJobStatisticsDTO`、`DailyMileageDTO`、`DriverReturnRegisterDTO`、`DriverPickUpDTO`、`DriverDeliverDTO` 等 |
+| driver/enums/ | `DriverJobStatusEnum` |
+| oms/domain/ | `OrderDTO`、`OrderDetailDTO`、`OrderCargoDTO`、`OrderCarriageDTO`、`OrderSearchDTO`、`OrderStatusCountDTO`、`OrderPickupDTO`、`OrderLocationDTO`、`MailingSaveDTO` |
+| oms/enums/ | `OrderTypeEnum`、`OrderStatusEnum`、`OrderPickupTypeEnum`、`OrderPaymentStatusEnum`、`OrderPaymentMethodEnum`、`MailTypeEnum` |
+| scope/domain/ | `ServiceScopeDTO`、`Coordinate` |
+| search/domain/ | `CourierTaskDTO`、`CourierTaskPageQueryDTO` |
+| sms/domain/ | `SmsInfoDTO`、`SendResultDTO` |
+| sms/enums/ | `SendStatusEnum`、`SmsContentTypeEnum`、`SmsTypeEnum` |
+| track/domain/ | `TrackDTO`、`MarkerPointDTO` |
+| track/enums/ | `TrackStatusEnum`、`TrackTypeEnum` |
+| trade/domain/ | `TradingDTO`、`PayChannelDTO`、`RefundRecordDTO`、`NativePayDTO`/`NativePayResponseDTO`、`JsapiPayDTO`/`JsapiPayResponseDTO` |
+| trade/enums/ | `TradingStateEnum`、`RefundStatusEnum`、`PayChannelEnum` |
+| transportInfo/domain/ | `TransportInfoDTO`、`TransportInfoDetailDTO` |
+| user/domain/ | `MemberDTO`、`AddressBookDTO` |
+| user/enums/ | `MemberIdCardVerifyStatusEnum`、`AddressBookTypeEnum`、`AddressBookShowStatusEnum` |
+| work/domain/ | `TransportTaskDTO`、`TransportOrderDTO`、`PickupDispatchTaskDTO`、`TaskStatsDTO`、`CourierTaskCountDTO` 等 |
+| work/enums/ | `TransportTaskStatusEnum`、`TransportOrderStatusEnum`、`PickupDispatchTaskStatusEnum`、`PickupDispatchTaskTypeEnum`、`SignRecipientEnum` 等 |
+
+### chain-cloud-ms-api
+
+基础包：`com.itheima.chaincloud.api`，按业务域组织：
+
+| 子包 | Feign 接口 |
+|------|-----------|
+| base/common/ | `AreaFeign`、`AuthFeign`、`GoodsTypeFeign`、`MessageFeign`、`MQFeign`、`WorkPatternFeign`、`WorkSchedulingFeign` |
+| base/trips/ | `TripsFeign` |
+| base/truck/ | `TruckFeign`、`TruckPlanFeign`、`TruckLicenseFeign`、`TruckReturnRegisterFeign`、`TruckTypeFeign` |
+| base/user/ | `DriverFeign` |
+| transport/ | `CostConfigurationFeign`、`OrganFeign`、`TransportLineFeign` |
+| aigc/ | `AIGCFeign` |
+| auth/ | `AuthFeign` |
+| carriage/ | `CarriageFeign` |
+| courier/ | `CourierFeign` |
+| driver/ | `DriverJobFeign` |
+| oms/ | `OrderFeign`、`GoodFeign`、`CargoFeign` |
+| scope/ | `ServiceScopeFeign` |
+| search/ | `CourierTaskFeign` |
+| sms/ | `SmsFeign` |
+| track/ | `TrackFeign` |
+| trade/ | `TradingFeign`、`NativePayFeign`、`JsapiPayFeign`、`RefundRecordFeign`（含 FallbackFactory） |
+| transportInfo/ | `TransportInfoFeign`（含 FallbackFactory） |
+| user/ | `MemberFeign`、`AddressBookFeign` |
+| work/ | `TransportTaskFeign`、`TransportOrderFeign`、`PickupDispatchTaskFeign` |
+
+### chain-cloud-gateway
+
+基础包：`com.itheima.gateway`
+
+| 包 | 内容 |
+|----|------|
+| config/ | `CorsConfig`、`MyConfig` |
+| filter/ | `AuthFilter`、`TokenGatewayFilter`、`ManagerTokenGatewayFilterFactory`、`DriverTokenGatewayFilterFactory`、`CustomerTokenGatewayFilterFactory`、`CourierTokenGatewayFilterFactory` |
+| properties/ | `JwtProperties` |
+
+### chain-cloud-mq
+
+基础包：`com.itheima.chaincloud.mq`
+
+| 包 | 内容 |
+|----|------|
+| config/ | `MessageConfig`、`ErrorMessageConfig` |
+| entity/ | `FailMsgEntity` |
+| exception/ | `MsgException` |
+| job/ | `FailMsgJob`（XXL-Job 重试） |
+| mapper/ | `FailMsgMapper` |
+| service/ | `MQService`、`FailMsgService` 及实现 |
+
+### 业务微服务模块
+
+每个业务微服务均遵循标准分层：`controller/` → `service/` → `mapper/` → `entity/`，部分模块含 `config/`、`mq/`、`job/`、`enums/`、`utils/` 等。
+
+**chain-cloud-ms-base-service**（`com.itheima.ms.base`）
+- controller/base/：区域、货物类型、工作模式、排班、消息、`AuthController`、`MQController`
+- controller/truck/：车辆、车辆计划、趟次、回车登记、车辆类型
+- controller/user/：司机
+- service/：`AuthService`、`WorkHistorySchedulingService`、`TruckPlanCreateService`、`TransportTripsTruckDriverService`、`TruckTypeGoodsTypeService` 等
+- mq/：`AuthUserMQListener`、`TruckPlanScheduledMQListener`
+- job/：`HistoryScheduleJob`
+- utils/：`WorkPatternUtils`、`WorkSchedulingUtils`
+
+**chain-cloud-ms-auth-service**（`com.itheima.ms.auth`）
+- controller/：`AuthController`、`LoginRecordController`
+- service/：`AuthService`、`LoginRecordService`
+- config/：`AsyncConfig`
+
+**chain-cloud-ms-user-service**（`com.itheima.ms.user`）
+- controller/：`MemberController`、`AddressBookController`
+
+**chain-cloud-ms-oms-service**（`com.itheima.ms.oms`）
+- controller/：`OrderController`、`CargoController`、`HotGoodController`
+- service/：`OrderService`、`OrderCargoService`、`OrderLocationService`、`CrudOrderService`、`HotGoodService`
+- mq/：`MQListener`
+
+**chain-cloud-ms-transport-service**（`com.itheima.ms.transport`）
+- controller/：`TransportLineController`、`CostConfigurationController`、`DispatchConfigurationController`、`OrganController`
+- repository/：`TransportLineRepository`、`OrganRepository`、`TLTRepository`、`OLTRepository`、`AgencyRepository`
+- service/：`TLTService`、`OLTService`、`AgencyService`
+- mq/：`AuthMQListener`
+- utils/：`TransportLineUtils`、`DistanceCalculator`、`OrganServiceFactory`、`OrganUtils`
+
+**chain-cloud-ms-transport-info-service**（`com.itheima.ms.transportinfo`）
+- controller/：`TransportInfoController`
+- config/：`RedissonConfiguration`、`RedisConfig`、`MyRedisCacheManager`、`CaffeineConfig`、`BloomFilterConfig`
+- mq/：`TransportInfoMQListener`、`RedisMessageListener`
+- service/：`TransportInfoService`、`BloomFilterService`
+
+**chain-cloud-ms-work-service**（`com.itheima.ms.work`）
+- controller/：`TransportTaskController`、`TransportOrderController`、`PickupDispatchTaskController`
+- mq/：`TransportTaskMQListener`、`CourierMQListener`
+- service/：`TransportTaskService`、`TransportOrderService`、`TransportOrderTaskService`、`PickupDispatchTaskService`
+
+**chain-cloud-ms-trade-service**（`com.itheima.ms.trade`）
+- controller/：`TradingController`、`PayChannelController`、`NativePayController`、`JsapiPayController`、`BasicPayController`、`NotifyController`、`RefundRecordController`
+- handler/：`HandlerFactory`、`BasicPayHandler`、`BeforePayHandler`、`NativePayHandler`、`JsapiPayHandler`
+- handler/wechat/：`WechatNativePayHandler`、`WechatJsapiPayHandler`、`WeChatBasicPayHandler`
+- handler/alipay/：`AliNativePayHandler`、`AliBasicPayHandler`
+- annotation/：`@PayChannel`
+- job/：`TradeJob`
+
+**chain-cloud-ms-carriage-service**（`com.itheima.ms.carriage`）
+- controller/：`CarriageController`
+- utils/：`CarriageUtils`
+
+**chain-cloud-ms-courier-service**（`com.itheima.ms.courier`）
+- controller/：`CourierController`
+- service/：`CourierUserService`、`CourierStatusService`
+
+**chain-cloud-ms-driver-service**（`com.itheima.ms.driver`）
+- controller/：`DriverJobController`
+
+**chain-cloud-ms-track-service**（`com.itheima.ms.track`）
+- controller/：`TrackController`
+- mq/：`MQListener`
+- util/：`TrackEntityUtil`
+
+**chain-cloud-ms-sms-service**（`com.itheima.ms.sms`）
+- controller/：`SmsController`
+- handler/：`HandlerFactory`、`SmsSendHandler`、`AliYunSmsSendHandler`
+- annotation/：`@SendChannel`
+- service/：`SmsService`、`RouteService`
+
+**chain-cloud-ms-search-service**（`com.itheima.ms.search`）
+- controller/：`CourierTaskController`
+- config/：`ElasticSearchConfig`、`LocalDateTimeSerializingConfig`
+- mq/：`CourierTaskMQListener`
+
+**chain-cloud-ms-service-scope-service**（`com.itheima.ms.scope`）
+- controller/：`ScopeController`
+- util/：`EntityUtils`
+
+**chain-cloud-ms-dispatch-service**（`com.itheima.ms.dispatch`）
+- config/：`XxlJobConfig`、`RedissonConfiguration`
+- job/：`DispatchJob`、`DispatchContext`
+- ml/model/：`TruckInfo`、`FeatureSnapshot`、`DispatchResult`、`DispatchDecisionRecord`
+- ml/model/enums/：`DispatchStatus`
+- mq/：`TransportOrderDispatchMQListener`、`OrderMQListener`
+
+**chain-cloud-ms-aigc-service**（`com.itheima.ms.aigc`）
+- controller/：`ServiceScopeController`、`RiskControlController`、`TransportOrderDispatchController`、`OrganTypeAgentController`、`TransportTaskDispatchController`、`CostFactorController`、`ParcelItemCheckController`、`CourierDispatchController`、`ComputeCarriageAgentController`
+- feign/：`AgentServerClient`
+- service/：各 Controller 对应的 Service 接口及实现
+
+### Web 接口模块
+
+每个 Web 模块均包含 `controller/`、`service/`、`vo/`、`config/` 层，`config/` 中均有 `WebFeignErrorDecoder` 和各模块专属配置。
+
+**chain-cloud-ms-web-manager**（`com.itheima.ms.web.manager`）
+- controller/auth/：`AuthController`
+- controller/agency/：`AgencyController`
+- controller/base/：区域、货物类型、工作模式、排班、工作空间、文件上传
+- controller/truck/：车辆、趟次、回车登记、车辆类型、司机
+- controller/carriage/：`CarriageController`
+- controller/oms/：订单、货物
+- controller/transport/：运输线路、调度配置、成本配置
+- controller/work/：运输任务、运输订单、揽收调度
+- util/：`ExcelUtil`、`ImportVOListener`、`RowFormatSetTextHandler`
+
+**chain-cloud-ms-web-customer**（`com.itheima.ms.web.customer`）
+- controller/：`AreaController`、`AddressBookController`、`CargoController`、`CarriageController`、`OrderController`、`UserController`
+- service/：`MemberService`、`BaseService`、`WechatService`、`TokenService`、`OmsService`、`CarriageService`、`AddressBookService`
+
+**chain-cloud-ms-web-courier**（`com.itheima.ms.web.courier`）
+- controller/：`LoginController`、`UserController`、`TaskController`、`TrackController`、`MessageController`、`AreaController`、`PayController`
+
+**chain-cloud-ms-web-driver**（`com.itheima.ms.web.driver`）
+- controller/：`LoginController`、`UserController`、`TaskController`、`TrackController`、`MessageController`、`FileUploadController`
+- config/：`OSSConfiguration`、`LoadBalanceConfig`
 
 ## 模块分类
 
@@ -220,24 +318,24 @@ chain-cloud/ (根聚合pom)
 | Spring Boot | 2.7.12     |
 | Spring Cloud | 2021.0.3   |
 | Spring Cloud Alibaba | 2021.0.4.0 |
-| MyBatis-Plus | 3.5.2      |
-| MySQL | 8.0.28     |
-| Redisson | 3.17.1     |
-| Seata | 1.5.2      |
-| XXL-Job | 2.3.0      |
+| MyBatis-Plus | 3.5.5      |
+| MySQL | 8.0.33     |
+| Redisson | 3.27.0     |
+| Seata | 1.7.1      |
+| XXL-Job | 2.4.1      |
 | Hutool | 5.8.0.M3   |
 | Knife4j | 3.0.3      |
-| Caffeine | 3.1.1      |
-| Aliyun OSS | 3.10.2     |
-| JJWT | 0.9.1      |
+| Caffeine | 3.1.8      |
+| Aliyun OSS | 3.17.4     |
+| JJWT | 0.11.5     |
 | Itcast Auth | 1.0.8      |
-| Lombok | 1.18.22    |
-| AspectJ | 1.9.7      |
-| HikariCP | 4.0.3      |
-| OkHttp | 3.13.1     |
+| Lombok | 1.18.30    |
+| AspectJ | 1.9.21     |
+| HikariCP | 5.1.0      |
+| OkHttp | 4.12.0     |
 | Nacos Config | 0.2.10     |
 | EagleMap | 1.0        |
-| CGLIB | 3.3.0      |
+| Netty | 4.1.107.Final |
 
 ## 常用命令
 
@@ -287,5 +385,7 @@ mvn clean install -DskipTests
 | domain-dto | 定义项目中 DTO 类编写规范，包括命名规范和注解要求 |
 | domain-enum | 定义项目中枚举类编写规范，包括命名规范、注解要求和实现模式 |
 | api-feign | 定义项目中 Feign API 接口编写规范，包括命名规范、注解要求和实现模式 |
+| karpathy-guidelines | 减少常见 LLM 编码错误的行为准则，用于编写、审查或重构代码时避免过度复杂化 |
+| plantuml | 定义项目中 PlantUML 图代码生成规范，包括时序图、流程图等图表的编写规范和最佳实践 |
 
-调用方式：在需要时使用 `/skill domain-dto` 或 `/skill domain-enum` 或 `/skill api-feign` 加载技能指导
+调用方式：在需要时使用 `/skill domain-dto` 或 `/skill domain-enum` 或 `/skill api-feign` 等加载技能指导
